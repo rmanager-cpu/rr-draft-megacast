@@ -58,6 +58,11 @@ Ship order (a slip costs the least important thing): 1 pick source + board + car
 deterministic TTS call -> 2 AI one-liner -> 3 highlights in ADP order -> 4 recaps ->
 5 open/sign-off/sponsor spots (only if copy exists by Sep 1).
 
+## Spike harness
+
+`npm run spike:poll` (Test A: v3 live polling) and `npm run spike:room` (Test B: draft-room
+recorder). Run sheet in `README.md`. Results land in `spike/out/` (gitignored).
+
 ## Open items for the owner
 
 - Is Labor Day weekend a service weekend? If so, the focused build day is this week and the

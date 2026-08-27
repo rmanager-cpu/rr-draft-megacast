@@ -8,3 +8,6 @@ out/
 *.log
 .DS_Store
 Thumbs.db
+
+# spike artifacts: league snapshots, WS frames, the logged-in Chrome profile
+spike/

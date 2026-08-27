@@ -1,0 +1,12 @@
+{
+  "name": "rr-draft-megacast",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "spike:poll": "node scripts/spike-poll.mjs",
+    "spike:room": "node scripts/spike-room.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.55.0"
+  }
+}
