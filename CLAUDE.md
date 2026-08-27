@@ -43,6 +43,24 @@ Pick-source plan, in order:
   queue with catch-up read, return-to-one recaps. Show bible leans: Dave Hoffman -> skeptical
   (football decision only); Turbo -> impressed (only when the draft state supports it).
 
+## Commentary model (owner 2026-08-26) — replaces the spec per-pick calls
+
+- **During picks: no commentary.** Sting + optional 2s name call ("Turbo: Bijan Robinson").
+  Highlight plays on TV 2 at the pick, as in the spec. People talk during the draft.
+- **Recaps are the show.** At a round boundary (config: every 1 or 2 rounds; owner leans 2)
+  the booth does a 60-120s segment: opinions on the N most interesting picks (config: 4 for
+  every round, 6-8 for every two), the rest as a one-line rundown, position runs noted.
+- Interest score per pick: value gap (ADP vs pick), position run, roster oddity, first
+  rookie / first TE, Dave/Turbo leans as a thumb on the scale. Top N get full packets.
+- A recap is never interrupted. A pick landing mid-recap reveals on the TVs with the sting
+  suppressed and is covered in the next recap.
+- Launch-page knobs: recapEvery (1|2), opinionsPerRecap (4|6|8), pickAudio (sting | sting+name | full call).
+- Two-voice booth (play-by-play + color), ElevenLabs voices; writer = Claude Opus 5 with the
+  bible cached (1h TTL). Facts packet-only: number/name/trigger-word checks + a checker call
+  before anything is spoken; deterministic fallback. Rookies flagged as unknown to the model.
+- Still needed from the owner: league lore for all 12 managers; 200-player notes (Claude drafts
+  from ESPN player data + web pass, owner skims).
+
 ## 14-day plan
 
 | Days | Build | Done when |
