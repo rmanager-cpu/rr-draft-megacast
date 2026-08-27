@@ -1,5 +1,7 @@
 # River Ranch Fantasy Draft Megacast
 
+**Read `docs/BUILD-GUIDE.md` first — it is the spec.** This file is working notes from scoping.
+
 Three-screen fantasy-draft broadcast for a private 12-team ESPN league: command-center
 computer (ESPN + launch/status), TV 1 draft board, TV 2 pick reveal + highlight, one
 speaker with AI announcer. Spec: `docs/River_Ranch_Fantasy_Draft_Megacast_Three_Screen_Build.pdf`
