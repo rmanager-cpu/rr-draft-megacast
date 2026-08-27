@@ -1,6 +1,6 @@
 # River Ranch Fantasy Draft Megacast
 
-See `CLAUDE.md` for the plan. This file is the spike run sheet.
+See `docs/BUILD-GUIDE.md` for the plan. This file is the spike run sheet.
 
 ## Tonight: the pick-source spike (Phase 0)
 
@@ -48,3 +48,11 @@ Everything lands in `spike/out/`.
 
 `spike/out/` and the Chrome profile are gitignored. Do not paste `ws-frames.log` anywhere
 public; it can carry session tokens.
+
+### 5. Then: the real league (10 seconds)
+
+Point `.env` at the real league (`ESPN_LEAGUE_ID`) and run `npm run spike:poll` for ten
+seconds, then Ctrl+C. The first `snapshot-*.json` in `spike/out/` carries the league
+settings: draft type, rounds, seconds per pick, pick order (if set), keeper picks, and the
+team list with ESPN team IDs. That is most of the commissioner list. Rerun it the day the
+order is set.
