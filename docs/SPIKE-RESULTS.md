@@ -12,7 +12,15 @@ auction by accident; second (`1814994619`) a 10-team PPR snake with real humans,
 - `inProgress` flips to `true` ~90s before the listed start (room opens). Through **78 picks**
   of a live draft, `made` stayed **0/160**. `view=mRoster` also showed 0 roster entries.
 - `draftSettings.date` is hidden from anonymous reads; present with member cookies.
-- Pending: whether picks appear after `drafted: true` (needed for post-draft reconciliation).
+- Post-draft: the mock league returned **404 within two seconds** of the final pick — ESPN
+  deletes mock leagues at completion — so "does v3 fill `picks` after `drafted: true`" could not
+  be checked here. The espn-api community relies on it for completed drafts; verify on the real
+  league the morning after, and do not make the final board depend on it.
+
+## Draft end on the wire
+
+Final pick `SELECTED 1 4567104 9` at 04:23:45, then `STATE 2` — the wire's draft-complete
+signal. 150 `SELECTED` frames after joining mid-round-1 (160 picks total); bots picked in 1.3s.
 
 ## Test B — what feeds the draft room? **A plain-text WebSocket. Success.**
 
