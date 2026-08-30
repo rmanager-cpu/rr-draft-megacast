@@ -8,7 +8,7 @@ v1 · Aug 27, 2026 · Draft night **Tue Sep 8** · 12 days
 
 | | |
 |---|---|
-| Pick source | Playwright drives the ESPN draft room on the laptop. The v3 endpoint is for post-draft reconciliation only — it does not show live picks (espn-api #558). Tonight's spike confirms. |
+| Pick source | A Node WebSocket client on ESPN's draft feed (`fantasydraft.espn.com`, token from `draftSecurity`). Playwright-driven draft room as fallback. The v3 endpoint is post-draft only — spike 8/29: zero live picks through 78 picks. Details: `docs/SPIKE-RESULTS.md`. |
 | Runtime | One local Node process. SSE to two Chrome windows. State in memory + JSON. No Supabase, no Vercel, no OptiSigns. |
 | APIs | Claude Opus 5 (writer + checker, bible cached). ElevenLabs (two voices). |
 | Displays | Laptop screen + 2 TVs over USB-C, at 1080p. |
