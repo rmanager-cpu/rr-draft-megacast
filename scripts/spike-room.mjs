@@ -7,7 +7,7 @@
 // less often, its HTML) whenever it changes. Nothing is clicked for you: log
 // in if asked, open the Draft Room from the league page, then leave it alone.
 // Output: spike/out/room.log, ws-frames.log, dom-*.txt / dom-*.html
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { chromium } from "playwright-core";
 import { loadEnv, requireLeague } from "./env.mjs";
 
@@ -50,16 +50,43 @@ function watch(page) {
     ws.on("close", () => log("page " + n + " WS closed " + ws.url()));
     ws.on("socketerror", (e) => log("page " + n + " WS error " + e));
   });
-  page.on("response", (r) => {
+  page.on("response", async (r) => {
     const t = r.request().resourceType();
-    if ((t === "xhr" || t === "fetch") && /draft|pick|league|player/i.test(r.url()))
-      log("page " + n + " " + t + " " + r.status() + " " + r.url().slice(0, 220));
+    const u = r.url();
+    if (/googlesyndication|doubleclick|google\.com|parsely|bamgrid|pagead|onefeed/i.test(u)) return;
+    if ((t === "xhr" || t === "fetch") && /draft|pick|league|player/i.test(u))
+      log("page " + n + " " + t + " " + r.status() + " " + u.slice(0, 220));
+    // Writes to ESPN (settings saves, draft actions): keep the request body and
+    // the response so we can see exactly what ESPN accepted.
+    if (/lm-api-writes|fantasy\.espn\.com\/apis\/v3\/.*\/(draft|settings)/i.test(u) && r.request().method() !== "GET") {
+      let body = "";
+      try { body = (await r.text()).slice(0, 4000); } catch {}
+      appendFileSync(out + "/writes.log", ts() + " " + r.request().method() + " " + r.status() + " " + u + "\nREQUEST " + (r.request().postData() || "").slice(0, 4000) + "\nRESPONSE " + body + "\n\n");
+      log("page " + n + " WRITE " + r.request().method() + " " + r.status() + " " + u.slice(0, 160) + " (body in writes.log)");
+    }
   });
   page.on("dialog", (d) => {
     log("page " + n + " DIALOG " + d.type() + ": " + d.message());
     d.accept().catch(() => {});
   });
   page.on("close", () => log("page " + n + " closed"));
+  // Red banner so this window is unmistakable next to the owner's own Chrome.
+  const banner = () =>
+    page
+      .evaluate(() => {
+        if (document.getElementById("rr-recorder-banner")) return;
+        const d = document.createElement("div");
+        d.id = "rr-recorder-banner";
+        d.textContent = "RECORDER WINDOW  -  log in and open the Draft Room here, then leave it alone";
+        d.setAttribute(
+          "style",
+          "position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#c3372b;color:#fff;font:700 15px system-ui,sans-serif;padding:6px 12px;text-align:center;pointer-events:none",
+        );
+        document.documentElement.appendChild(d);
+      })
+      .catch(() => {});
+  page.on("load", banner);
+  page.on("domcontentloaded", banner);
 
   let lastLen = -1;
   let lastHtmlAt = 0;
@@ -88,6 +115,35 @@ ctx.on("page", watch);
 const page = ctx.pages()[0] ?? (await ctx.newPage());
 await page.goto("https://fantasy.espn.com/football/league?leagueId=" + id + "&seasonId=" + season);
 log("Log in if asked. Open the Draft Room from the league page when it is available. Then leave the window alone. Ctrl+C here after the draft completes.");
+
+// Cookie hand-off: once you log in in this window, SWID + espn_s2 are written
+// to .env so the poller (and later the watcher) can use them. Values are
+// never logged.
+let lastSync = "";
+async function syncCookies() {
+  try {
+    const cookies = await ctx.cookies("https://fantasy.espn.com");
+    const swid = cookies.find((c) => c.name === "SWID")?.value;
+    const s2 = cookies.find((c) => c.name === "espn_s2")?.value;
+    if (!swid || !s2) return;
+    const sig = swid + "|" + s2;
+    if (sig === lastSync) return;
+    lastSync = sig;
+    const lines = existsSync(".env") ? readFileSync(".env", "utf8").split(/\r?\n/).filter((l, i, a) => l !== "" || i < a.length - 1) : [];
+    const set = (key, val) => {
+      const i = lines.findIndex((l) => l.startsWith(key + "="));
+      if (i >= 0) lines[i] = key + "=" + val;
+      else lines.push(key + "=" + val);
+    };
+    set("ESPN_SWID", swid);
+    set("ESPN_S2", s2);
+    writeFileSync(".env", lines.join("\n").replace(/\n*$/, "") + "\n");
+    log("ESPN cookies synced to .env");
+  } catch (e) {
+    log("cookie sync failed: " + e.message);
+  }
+}
+setInterval(syncCookies, 3000);
 
 process.on("SIGINT", async () => {
   log("stopping");
