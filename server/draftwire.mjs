@@ -5,7 +5,10 @@
 // SELECTED, AUTOSUGGEST, STATE, BID, PONG (see docs/SPIKE-RESULTS.md). Client sends
 // "PING PING%20<ms>" as keepalive; the server answers PONG. Never log what we send.
 
+import { decodeInitPayload } from "./initdecode.mjs";
+
 const GAME = 1; // ffl
+let nonce = 0;
 
 export async function draftToken({ leagueId, teamId, cookie, season = 2026 }) {
   const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}/teams/${teamId}/draftSecurity`;
@@ -21,11 +24,16 @@ export function joinUrl({ leagueId, teamId, swid, token, tokenPrefix = GAME }) {
   u.searchParams.set("2", String(leagueId));
   u.searchParams.set("3", String(teamId));
   u.searchParams.set("4", swid);
-  u.searchParams.set("5", `${tokenPrefix}:${leagueId}:${teamId}:${swid}:${token}`);
+  // Param 5 is the composite credential the room echoes back as its TOKEN frame:
+  // "<game>:<league>:<team>:<SWID>:<token>". draftSecurity has returned the bare
+  // numeric tail every time we have looked, but if it ever hands back the whole
+  // thing we must not prefix it twice or the join is rejected.
+  u.searchParams.set("5", String(token).includes(":") ? String(token) : `${tokenPrefix}:${leagueId}:${teamId}:${swid}:${token}`);
   u.searchParams.set("6", "false");
   u.searchParams.set("7", "false");
   u.searchParams.set("8", "KONA");
-  u.searchParams.set("nocache", String(Date.now() % 1000000));
+  // Unique per attempt: two reconnects inside one millisecond must not collide.
+  u.searchParams.set("nocache", `${Date.now() % 1000000}${(nonce = (nonce + 1) % 1000)}`);
   return u.toString();
 }
 
@@ -37,7 +45,15 @@ export function parseFrame(text) {
   const f = { cmd, args, raw: text };
   switch (cmd) {
     case "SELECTED":
+      // playerId can be negative and still real - every D/ST is. Do not treat
+      // "less than zero" as invalid anywhere downstream.
       return { ...f, teamId: +args[0], playerId: +args[1], slot: +args[2], memberId: args[3] };
+    case "LEFT":
+      return { ...f, teamId: +args[0], memberId: args[1] };
+    case "PONG":
+      // Echoes the timestamp we sent, so it is a free round-trip measurement
+      // and the earliest warning that the link is degrading.
+      return { ...f, sentAt: Number(String(args[0] ?? "").replace(/\D/g, "")) || 0 };
     case "SELECTING":
       return { ...f, teamId: +args[0], clockMs: +args[1] };
     case "CLOCK":
@@ -52,8 +68,12 @@ export function parseFrame(text) {
       return { ...f, state: +args[0] };
     case "BID":
       return { ...f, teamId: +args[0], playerId: +args[1], amount: +args[2], msLeft: +args[4] };
-    case "INIT":
-      return { ...f, bytes: Buffer.from(rest.replace(/\s+/g, ""), "base64") };
+    case "INIT": {
+      // Two chunks: real base64, then '#' filler. Splitting them explicitly means
+      // bytes.length is the true payload size and a format change is visible.
+      const { bytes, padding } = decodeInitPayload(rest);
+      return { ...f, bytes, padding };
+    }
     default:
       return f;
   }
