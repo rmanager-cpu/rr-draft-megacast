@@ -20,3 +20,4 @@ data/picks.jsonl
 data/headshots/
 data/audio/cache/
 data/*.tmp
+data/chrome-profile/

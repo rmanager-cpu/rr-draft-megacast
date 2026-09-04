@@ -19,6 +19,7 @@ import { createFrameHandler } from "./pipeline.mjs";
 import { createReplaySource } from "./src-replay.mjs";
 import { createLiveSource } from "./src-live.mjs";
 import { createSynthSource } from "./src-synth.mjs";
+import { createRoomSource } from "./src-room.mjs";
 import { loadPlayers, splitName } from "./players.mjs";
 import { loadLeague, placeholderLeague } from "./league.mjs";
 import { createReveal } from "./reveal.mjs";
@@ -645,6 +646,49 @@ server.listen(PORT, HOST, async () => {
       onFrame: handleFrame,
       onEvent: wireEvent,
       onRtt: (ms) => state.touch((s) => (s.connection.rttMs = ms)),
+      onContested: (why) => {
+        log("CONTESTED: " + why);
+        state.warn(why);
+        state.touch((s) => (s.connection.contested = true));
+        sse.send("status", { connection: state.state.connection, warning: why, version: state.version });
+      },
+    });
+    state.apply((s) => (s.source = source.name));
+    await source.start();
+    return;
+  }
+
+  // Read the draft room over the shoulder of the browser showing it. One
+  // connection exists and we listen to it, so nothing can be evicted.
+  if (SOURCE === "room") {
+    league = await loadLeague({
+      season: SEASON,
+      leagueId: LEAGUE_ID,
+      cookie: "SWID=" + env.ESPN_SWID + "; espn_s2=" + env.ESPN_S2,
+      onInfo: log,
+      onWarn: (w) => log("warn:", w),
+      allowPlaceholder: true,
+    });
+    const mine = league.teams.find((t) => (t.owners || []).includes(env.ESPN_SWID));
+    const teamId = Number(flag("team", mine ? mine.id : 0));
+    if (!teamId) {
+      log("no team to open the draft room as. Pass --team <id>.");
+      state.warn("no team to open the draft room as");
+      return;
+    }
+    state.apply((s) => {
+      s.leagueName = league.name;
+      s.draft.secondsPerPick = league.secondsPerPick;
+      s.draft.keeperCount = league.keeperCount;
+      s.draft.teams = league.teams;
+    });
+    source = createRoomSource({
+      leagueId: LEAGUE_ID,
+      teamId,
+      swid: env.ESPN_SWID,
+      season: SEASON,
+      onFrame: handleFrame,
+      onEvent: wireEvent,
     });
     state.apply((s) => (s.source = source.name));
     await source.start();

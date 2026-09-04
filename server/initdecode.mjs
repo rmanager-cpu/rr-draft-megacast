@@ -52,16 +52,20 @@ export function decodeInit(bytes, { leagueId } = {}) {
   const fits = (o) => o >= 0 && o + MIN_FIELDS <= bytes.length;
 
   let lastReason = "no record with pick 1";
+  let best = null;
   for (let o = 0; fits(o); o++) {
     if (i32(o) !== TAG || i32(o + 12) !== 1) continue;
     const lid = i32(o + 4);
     if (lid <= 0) continue;
     if (leagueId && lid !== Number(leagueId)) continue;
     const attempt = readFrom(bytes, o, lid);
-    if (attempt.ok) return attempt;
+    if (attempt.ok) {
+      if (!best || attempt.total > best.total) best = attempt;
+      continue;
+    }
     lastReason = attempt.reason;
   }
-  return fail(lastReason);
+  return best ?? fail(lastReason);
 }
 
 /** Try to read the record array starting at `first`. Validates before believing it. */

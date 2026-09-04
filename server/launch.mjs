@@ -60,6 +60,8 @@ export function registerCoreChecks(launch, { state, getSource = () => null, play
       const c = state.state.connection;
       const src = getSource();
       if (src?.simulated) return { ok: true, detail: "SIMULATOR - " + (src.name ?? "replay"), simulated: true };
+      // Discovering this at five to seven would be the worst possible moment.
+      if (c.contested) return { ok: false, detail: "another session is using this ESPN account - the show needs its own" };
       if (c.status !== "connected") return { ok: false, detail: c.detail || c.status };
       const age = Date.now() - (c.lastFrameAt || 0);
       if (age > 60000) return { ok: false, detail: `no frame for ${Math.round(age / 1000)}s` };

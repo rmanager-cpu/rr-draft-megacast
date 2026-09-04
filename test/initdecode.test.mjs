@@ -3,7 +3,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { decodeInit, decodeInitPayload, orderFromRecords } from "../server/initdecode.mjs";
+import { decodeInit, decodeInitPayload, orderFromRecords, encodeInitRecords } from "../server/initdecode.mjs";
+
+test("metadata resembling two picks does not hide the full room snapshot", () => {
+  const metadata = encodeInitRecords([
+    { pick: 1, teamId: 0, playerId: 12 },
+    { pick: 2, teamId: 4430807, playerId: 16 },
+  ], 2);
+  const { bytes } = decodeInitPayload(fixture("init-snake.txt"));
+  const result = decodeInit(Buffer.concat([metadata, bytes]));
+  assert.equal(result.ok, true);
+  assert.equal(result.leagueId, SNAKE);
+  assert.equal(result.total, 160);
+});
 
 const fixture = (n) => readFileSync(new URL("./fixtures/" + n, import.meta.url), "utf8");
 

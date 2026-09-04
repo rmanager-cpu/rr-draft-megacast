@@ -6,6 +6,7 @@
 // "PING PING%20<ms>" as keepalive; the server answers PONG. Never log what we send.
 
 import { decodeInitPayload } from "./initdecode.mjs";
+import WebSocket from "ws";
 
 const GAME = 1; // ffl
 let nonce = 0;
@@ -34,7 +35,8 @@ export function joinUrl({ leagueId, teamId, swid, token, tokenPrefix = GAME }) {
   u.searchParams.set("8", "KONA");
   // Unique per attempt: two reconnects inside one millisecond must not collide.
   u.searchParams.set("nocache", `${Date.now() % 1000000}${(nonce = (nonce + 1) % 1000)}`);
-  return u.toString();
+  // The room protocol expects literal braces and colons, as sent by ESPN's page.
+  return u.toString().replace(/%7B/gi, "{").replace(/%7D/gi, "}").replace(/%3A/gi, ":");
 }
 
 export function parseFrame(text) {
@@ -81,8 +83,14 @@ export function parseFrame(text) {
 
 /** Open the draft wire. Calls onFrame(parsed) for every server frame, onEvent for
  *  lifecycle ("open" | "close" | "error", detail). Returns { close() }. */
-export function connectDraft({ url, onFrame, onEvent = () => {}, pingMs = 10000 }) {
-  const ws = new WebSocket(url);
+export function connectDraft({ url, cookie, onFrame, onEvent = () => {}, pingMs = 10000 }) {
+  const ws = new WebSocket(url, {
+    origin: "https://fantasy.espn.com",
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      ...(cookie ? { Cookie: cookie } : {}),
+    },
+  });
   let ping = null;
   ws.addEventListener("open", () => {
     onEvent("open", url.replace(/4=[^&]+/, "4=<swid>").replace(/5=[^&]+/, "5=<token>"));

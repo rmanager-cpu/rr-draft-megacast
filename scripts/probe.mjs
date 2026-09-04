@@ -92,6 +92,7 @@ async function main() {
 
   const conn = connectDraft({
     url,
+    cookie,
     onEvent: (kind, detail) => console.log("  " + kind + ": " + detail),
     onFrame: (f) => {
       if (f.cmd === "INIT" && !sawInit) {
