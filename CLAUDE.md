@@ -72,6 +72,9 @@ otherwise; the order comes off the wire and the settings, never from a counter.
 | 11 | Who's the Man? | Chris Burnham |
 | 12 | Mind Games | Connor Tierney |
 
+The watcher account **Mega Cast** joined team #2 on Sep 4, alongside Alex Mondschein, so
+the arrangement below is now in place and not just possible.
+
 Co-managers are allowed and already in use: team #1 has two accounts, `therojek` and
 `New - therojek`, both Kristian Rojek. That is the exact pattern the show needs, so it
 is a precedent rather than a request for a favour.
@@ -79,9 +82,11 @@ is a precedent rather than a request for a favour.
 `draftSecurity` already issues a token for team #2, four days out, so the room does not
 have to be open for the handshake to work.
 
-The show bible leans on "Dave Hoffman" and "Turbo". Dave Hoff is team #3. Turbo is not a
-name in this list, so it is presumably somebody's nickname - worth pinning down before
-the booth uses it.
+The show bible leans on "Dave Hoffman" and "Turbo". Dave Hoff is team #3, so that one
+lands. Turbo is not a name in the league, but team #9 "Who's the Man?", managed by Chris
+Burnham, carries the abbreviation "TURb" - almost certainly him. **Unconfirmed by the
+owner.** The booth must not use a nickname for a real person on the strength of a guess,
+so leave the lean off Turbo until that is a yes.
 ## The watcher account
 
 The show needs its own ESPN account, added as a **co-manager on the owner's own team**.
