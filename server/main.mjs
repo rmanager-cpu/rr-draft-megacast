@@ -47,6 +47,9 @@ const HOST = String(flag("host", "127.0.0.1"));
 const SOURCE = String(flag("source", "replay"));
 const SPEED = Number(flag("speed", 1));
 
+const NL = String.fromCharCode(10);
+const SEP = NL + NL + "---" + NL + NL;
+
 function readTextOr(path, fallback) {
   try {
     return readFileSync(path, "utf8");
@@ -120,7 +123,8 @@ const audio = createAudio({
 
 const writer = createWriter({
   apiKey: env.ANTHROPIC_API_KEY,
-  bible: readTextOr("data/bible.md", ""),
+  // The booth knows two things: how it behaves, and who these people are.
+  bible: [readTextOr("data/bible.md", ""), readTextOr("data/lore.md", "")].filter(Boolean).join(SEP),
   onWarn: (w) => { log("warn:", w); state.warn(w); },
   onInfo: log,
 });
@@ -303,6 +307,31 @@ function checkRoundBoundary() {
   }
 }
 
+const bitsPlayed = new Set();
+
+function bitFor(teamId) {
+  if (!reconciler) return null;
+  const pick = reconciler.cursor;
+  const snap = reconciler.snapshot();
+  if (!snap.teamCount) return null;
+  const round = Math.ceil(pick / snap.teamCount);
+  const team = league.teams.find((t) => t.id === teamId);
+  if (!team) return null;
+  const key = teamId + ":" + round;
+  if (bitsPlayed.has(key)) return null;
+
+  const bit = (showConfig.bits ?? []).find(
+    (b) =>
+      b &&
+      b.text &&
+      Number(b.round) === round &&
+      String(b.manager || "").toLowerCase() === String(team.manager || "").toLowerCase(),
+  );
+  if (!bit) return null;
+  bitsPlayed.add(key);
+  return bit;
+}
+
 /** A live reaction, capped per round and on a cooldown, dropped if it is late. */
 function maybeInterject(card) {
   const cfg = showConfig.interjections ?? {};
@@ -395,6 +424,14 @@ const handleFrame = createFrameHandler({
     state.touch((s) => (s.onClock = { teamId, msLeft: clockMs, at: Date.now() }));
     sse.send("onclock", { teamId, version: state.version });
     bus.emit("onclock", { teamId });
+
+    const bit = bitFor(teamId);
+    if (bit) {
+      log("bit for " + bit.manager + ", round " + bit.round);
+      booth
+        .say(KIND.BIT, bit.text, { meta: { manager: bit.manager, round: bit.round } })
+        .catch((e) => log("bit:", e.message));
+    }
   },
   onClock: ({ teamId, msLeft }) => {
     state.touch((s) => (s.onClock = { teamId, msLeft, at: Date.now() }));
@@ -462,7 +499,9 @@ const routes = {
   "POST /api/launch": async ({ body, json }) => {
     const gate = await launch.evaluate();
     if (!gate.ready && !body.force) return json(409, { ok: false, reason: "not all checks are green", checks: gate.checks });
-    return json(200, launch.launch({ force: !!body.force }));
+    const res = launch.launch({ force: !!body.force });
+    if (res.ok) booth.open().catch((e) => log("booth open:", e.message));
+    return json(200, res);
   },
   "POST /api/audio-test": ({ json }) => {
     sse.send("say", { text: "River Ranch draft booth. Testing, one, two.", test: true });
