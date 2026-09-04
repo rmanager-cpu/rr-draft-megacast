@@ -39,6 +39,49 @@ The show is built and runs end to end. Branch: `build/show-server`.
 - No highlight clips curated yet.
 - The in-room rehearsal on the real TVs and speaker.
 
+## The league, confirmed from ESPN on Sep 4
+
+**Live free or die hard RR4L**, league id `36784699`. Twelve teams, full.
+
+| | |
+|---|---|
+| Draft | Snake, **Tuesday Sep 8 2026, 7:00 PM PT** |
+| Clock | **90 seconds** per pick |
+| Rounds | 16 - QB, RB x2, WR x2, TE, D/ST, K, FLEX, seven bench, one IR |
+| Keepers | none |
+| Order | already set, manual |
+| Owner | Alex Mondschein, team **#2 Trust The Process**, picking 9th |
+
+Draft order by team id: 6, 3, 5, 7, 1, 8, 12, 13, 2, 11, 9, 4.
+
+**Team ids are not 1 to 12.** They run 1-9 and 11-13, with no 10. Nothing may assume
+otherwise; the order comes off the wire and the settings, never from a counter.
+
+| Slot | Team | Manager |
+|---|---|---|
+| 1 | -bby not -bbers | Robert Kuebler |
+| 2 | Doff | Dave Hoff |
+| 3 | squawvy Cal Pal | Callie Ewing |
+| 4 | Mr steel ur girl | Bailey Bourgeois |
+| 5 | Handsome Rojek | Kristian Rojek |
+| 6 | Rojek's Daddy | Brad Alvarez |
+| 7 | Cam's Killas | Camree Tierney |
+| 8 | Kerry's Top-Notch Team | Kerry Poche |
+| 9 | Trust The Process | Alex Mondschein |
+| 10 | Team Dansky | Alex Dansky |
+| 11 | Who's the Man? | Chris Burnham |
+| 12 | Mind Games | Connor Tierney |
+
+Co-managers are allowed and already in use: team #1 has two accounts, `therojek` and
+`New - therojek`, both Kristian Rojek. That is the exact pattern the show needs, so it
+is a precedent rather than a request for a favour.
+
+`draftSecurity` already issues a token for team #2, four days out, so the room does not
+have to be open for the handshake to work.
+
+The show bible leans on "Dave Hoffman" and "Turbo". Dave Hoff is team #3. Turbo is not a
+name in this list, so it is presumably somebody's nickname - worth pinning down before
+the booth uses it.
 ## The watcher account
 
 The show needs its own ESPN account, added as a **co-manager on the owner's own team**.

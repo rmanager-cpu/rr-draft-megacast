@@ -89,7 +89,7 @@ async function main() {
     shape = t.length > 80 ? t.slice(0, 40) + "...(" + t.length + " chars)" : t;
   } catch {}
   console.log("");
-  console.log("draftSecurity for team #" + mine.id + ": HTTP " + rs.status + "   " + shape.replace(/[A-Za-z0-9]{12,}/g, "<token>"));
+  console.log("draftSecurity for team #" + mine.id + ": HTTP " + rs.status + "   " + (rs.ok ? "token issued (" + shape.trim().length + " characters)" : shape));
   return 0;
 }
 
