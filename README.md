@@ -1,58 +1,89 @@
 # River Ranch Fantasy Draft Megacast
 
-See `docs/BUILD-GUIDE.md` for the plan. This file is the spike run sheet.
+Three screens, one speaker, one laptop, and nobody touching anything after Launch.
+`docs/BUILD-GUIDE.md` is the spec. `docs/SPIKE-RESULTS.md` is what the wire actually does.
 
-## Tonight: the pick-source spike (Phase 0)
+## Run it
 
-Question: can a program see ESPN picks *while* the draft is live, with nobody
-touching anything? Two tests run side by side during one throwaway draft.
+```
+npm test                                   the whole suite, no network needed
+npm start                                  the real draft (needs .env)
+npm run replay                             the recorded 8/29 draft, at real speed
+npm run replay:fast                        the same, in about twenty seconds
+npm run replay:step                        one pick at a time, for building things
+npm run synth                              an invented 12-team, 16-round draft
+npm run soak                               two hours, both TVs, unattended
+```
 
-### 1. Throwaway league (ESPN, ~10 min)
+Then open, on the show computer:
 
-1. fantasy.espn.com -> Create League. Name it anything. **12 teams**, defaults otherwise.
-2. League settings -> Draft: **Snake**, live draft, **30 seconds per pick** (or the minimum),
-   date = tonight, time = about 30 minutes from now.
-3. Set your own team to autopick (Draft Room or team settings) so nobody has to click.
-   The 11 unowned teams autopick on their own.
-4. Copy the `leagueId` from the URL.
+| | |
+|---|---|
+| `/board` | TV 1 — the live draft board |
+| `/studio` | TV 2 — the pick reveal. **Click it once** to arm audio |
+| `/launch` | the preflight and the one button |
+| `/status` | counters, warnings, forced reconnect, emergency pick |
+| `/curate` | the highlight catalogue |
 
-If ESPN refuses to schedule a draft with unowned teams, say so. Test B still works
-from the mock-draft lobby, and we find another route for Test A.
+Everything binds to `127.0.0.1`. The TVs are Chrome windows on this laptop, not devices on
+the venue network, so the venue Wi-Fi dropping cannot touch them.
 
-### 2. `.env` (~2 min)
+## Before draft night
 
-    copy .env.example .env
+1. **`.env`** — copy `.env.example`, fill in the real league id and fresh ESPN cookies.
+   Add `ANTHROPIC_API_KEY` and `ELEVENLABS_API_KEY` if the booth is to use real voices;
+   without them it speaks written lines through the laptop's own voice.
+2. **`node scripts/league-info.mjs`** — the commissioner list straight from ESPN: draft
+   type, date, seconds per pick, rounds, keepers, pick order, team-to-manager table, and
+   whether the room hands out a token yet.
+3. **`node scripts/prefetch-headshots.mjs --top 400`** — puts the images on disk so the
+   studio works with the cable out.
+4. **`/curate`** — work down the list in draft order. Anyone without a clip gets the
+   animated card, which is the design, not a failure. Press *Check every clip* when done.
+5. **`data/show.config.json`** — the knobs: recap rounds, how many opinions, pick audio,
+   interjection caps, reveal timings. Edit it directly; it is read at boot and frozen at Launch.
+6. **`data/lore.md`** and **`data/bible.md`** — what the booth knows about the twelve
+   managers, and how the two broadcasters behave. The booth is only as good as these.
 
-Fill `ESPN_LEAGUE_ID`. For `ESPN_SWID` / `ESPN_S2`: in Chrome (logged in to ESPN) press
-F12 -> Application -> Cookies -> `https://fantasy.espn.com`. SWID keeps its `{braces}`.
+## Draft night
 
-### 3. Run (two terminals, ~20 min before the draft)
+**Sixty minutes before.** Power, dock, Ethernet. Both TVs at 1080p on the extended desktop,
+one full-screen Chrome window each. Click the studio window once so Chrome will let it make
+sound. Open `/launch`.
 
-    npm install
-    npm run spike:poll      # terminal 1. Test A: polls the v3 endpoint every 2s
-    npm run spike:room      # terminal 2. Test B: opens Chrome, records the draft room
+**Fifteen minutes before.** Every check green, then press Launch once. The laptop stays
+powered, awake, and untouched.
 
-In the Chrome window that opens: log in if asked, open the **Draft Room** when the
-league page offers it, then leave it alone. Let the draft run to completion. Ctrl+C both.
+**During.** Draft in ESPN as normal. If something looks wrong, wait twenty seconds. The
+board is truth. `/status` has a forced reconnect and an emergency by-hand pick, and neither
+should ever be needed.
 
-### 4. What to look at
+**After.** Leave the board up. Next day: keep the logs, rotate the cookies.
 
-Everything lands in `spike/out/`.
+## When something goes wrong
 
-- `poll.log` is the verdict. If `PICK #...` lines appear while `inProgress=true`, the
-  spec's polling design works. If `picks=0` until `drafted=true`, it does not, and the
-  draft room is the pick source.
-- `ws-frames.log` + `dom-*.txt` are what the draft room emits: the raw material for the
-  zero-operator watcher either way.
-- Note anything the draft room asked you (idle prompts, "still there?", re-login).
+| what you see | what is happening |
+|---|---|
+| amber bar on the board | ESPN link is down. Picks fill in when it returns; the board keeps what it knows |
+| red bar on the board | the server is unreachable from that TV. It keeps the last state and retries |
+| `recovering` in a cell | a pick was missed. The next reconnect fills it in with the right number |
+| studio trails the board | by design, up to about fifteen seconds. It compresses and never skips a pick |
+| no highlight | that player has no clip. The card is the fallback and it is intended |
+| cookies expired on `/status` | paste fresh ones into `.env`, then press the reconnect button |
 
-`spike/out/` and the Chrome profile are gitignored. Do not paste `ws-frames.log` anywhere
-public; it can carry session tokens.
+## Layout
 
-### 5. Then: the real league (10 seconds)
+```
+server/    draftwire, initdecode, reconcile, state, reveal, audio, booth, highlights, http, sse
+web/       board, studio, launch, status, curate - plain HTML, no build step
+data/      show.config.json, lore.md, bible.md, highlights.json (caches are gitignored)
+test/      node --test, no network, driven by the real 8/29 capture
+scripts/   league-info, prefetch-headshots, soak, verify-board, preflight-rehearsal
+```
 
-Point `.env` at the real league (`ESPN_LEAGUE_ID`) and run `npm run spike:poll` for ten
-seconds, then Ctrl+C. The first `snapshot-*.json` in `spike/out/` carries the league
-settings: draft type, rounds, seconds per pick, pick order (if set), keeper picks, and the
-team list with ESPN team IDs. That is most of the commissioner list. Rerun it the day the
-order is set.
+## Spike
+
+The original pick-source spike is finished and its findings are in `docs/SPIKE-RESULTS.md`.
+`npm run spike:poll` and `npm run spike:room` are still there if the wire ever needs
+re-examining. **Never paste `spike/out/ws-frames.log` anywhere:** the client half of that
+capture carries session tokens.

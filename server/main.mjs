@@ -18,6 +18,7 @@ import { createReconciler } from "./reconcile.mjs";
 import { createFrameHandler } from "./pipeline.mjs";
 import { createReplaySource } from "./src-replay.mjs";
 import { createLiveSource } from "./src-live.mjs";
+import { createSynthSource } from "./src-synth.mjs";
 import { loadPlayers, splitName } from "./players.mjs";
 import { loadLeague, placeholderLeague } from "./league.mjs";
 import { createReveal } from "./reveal.mjs";
@@ -456,6 +457,10 @@ const routes = {
       connection: state.state.connection,
       committed: state.state.counters.committed,
       uptimeSec: Math.round(process.uptime()),
+      rssMb: Math.round(process.memoryUsage().rss / 1048576),
+      audio: audio.counts(),
+      reveal: { depth: reveal.depth(), revealed: reveal.revealed() },
+      booth: booth.stats(),
       displays: sse.counts(),
     }),
   "POST /api/register": ({ body, json }) => {
@@ -572,6 +577,26 @@ server.listen(PORT, HOST, async () => {
       onEvent: wireEvent,
       onRtt: (ms) => state.touch((s) => (s.connection.rttMs = ms)),
     });
+    state.apply((s) => (s.source = source.name));
+    await source.start();
+    return;
+  }
+
+  if (SOURCE === "synth") {
+    source = createSynthSource({
+      teams: Number(flag("teams", 12)),
+      rounds: Number(flag("rounds", 16)),
+      seed: Number(flag("seed", 7)),
+      keepers: Number(flag("keepers", 0)),
+      speed: SPEED,
+      pool: (players?.byAdp ?? []).map((p) => p.id),
+      onFrame: handleFrame,
+      onEvent: wireEvent,
+    });
+    if (has("drop-at")) {
+      source.injectFault("drop", { atPick: Number(flag("drop-at", 45)), picks: Number(flag("drop-picks", 8)) });
+      log("fault armed: going dark for " + Number(flag("drop-picks", 8)) + " picks at pick " + Number(flag("drop-at", 45)));
+    }
     state.apply((s) => (s.source = source.name));
     await source.start();
     return;

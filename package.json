@@ -7,8 +7,15 @@
   },
   "scripts": {
     "test": "node --test",
-    "watch": "node server/watch.mjs",
+    "start": "node server/main.mjs --source live",
+    "replay": "node server/main.mjs --source replay --speed 1",
+    "replay:fast": "node server/main.mjs --source replay --speed 60",
+    "replay:step": "node server/main.mjs --source replay --step",
+    "synth": "node server/main.mjs --source synth --speed 20",
+    "soak": "node scripts/soak.mjs --minutes 120 --speed 1",
     "league": "node scripts/league-info.mjs",
+    "prefetch": "node scripts/prefetch-headshots.mjs --top 400",
+    "watch": "node server/watch.mjs",
     "spike:poll": "node scripts/spike-poll.mjs",
     "spike:room": "node scripts/spike-room.mjs",
     "spike:replay": "node scripts/spike-replay.mjs"
