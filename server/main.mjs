@@ -28,6 +28,7 @@ import { readJsonSync } from "./persist.mjs";
 import { createLaunch, registerCoreChecks } from "./launch.mjs";
 import { createAudio, KIND } from "./audio.mjs";
 import { createBooth } from "./booth.mjs";
+import { createInterjectPolicy } from "./interject-policy.mjs";
 import { createWriter } from "./booth-writer.mjs";
 import { createVoice } from "./booth-voice.mjs";
 
@@ -282,8 +283,6 @@ function startReconciler(room) {
 
 const recapRounds = new Set(showConfig.recapAfterRounds ?? [1, 2, 4, 6, 8, 10, 12, 14, 16]);
 const recapped = new Set();
-const interjectedThisRound = new Map();
-let lastInterjectAt = 0;
 
 function checkRoundBoundary() {
   if (!reconciler) return;
@@ -307,6 +306,7 @@ function checkRoundBoundary() {
   }
 }
 
+const interjectPolicy = createInterjectPolicy({ config: showConfig.interjections ?? {} });
 const bitsPlayed = new Set();
 
 function bitFor(teamId) {
@@ -332,26 +332,15 @@ function bitFor(teamId) {
   return bit;
 }
 
-/** A live reaction, capped per round and on a cooldown, dropped if it is late. */
+/** A live reaction. Perishable, capped, and dropped rather than said late. */
 function maybeInterject(card) {
-  const cfg = showConfig.interjections ?? {};
-  const max = cfg.maxPerRound ?? 2;
-  const cooldown = (cfg.cooldownSeconds ?? 90) * 1000;
-  const used = interjectedThisRound.get(card.round) ?? 0;
-  if (used >= max) return;
-  if (Date.now() - lastInterjectAt < cooldown) return;
-  if (audio.talkingOver) return;
-
   const context = runContext(card);
-  const gap = card.adp ? card.adp - card.pick : 0;
-  const worth = Math.abs(gap) >= 12 || context.runLength >= 3 || ((card.pos === "K" || card.pos === "D/ST") && card.round <= 12);
-  if (!worth) return;
-
-  interjectedThisRound.set(card.round, used + 1);
-  lastInterjectAt = Date.now();
+  const verdict = interjectPolicy.decide(card, context, { talkingOver: audio.talkingOver });
+  if (!verdict.go) return;
+  interjectPolicy.spent(card);
   booth.interject(card, context).then(
     (r) => {
-      if (!r?.queued) log("interjection dropped: " + (r?.reason ?? "unknown"));
+      if (!r || !r.queued) log("interjection dropped: " + ((r && r.reason) || "unknown"));
     },
     (e) => log("booth interject:", e.message),
   );
