@@ -39,6 +39,24 @@ The show is built and runs end to end. Branch: `build/show-server`.
 - No highlight clips curated yet.
 - The in-room rehearsal on the real TVs and speaker.
 
+## The watcher account
+
+The show needs its own ESPN account, added as a **co-manager on the owner's own team**.
+
+ESPN allows one draft-room connection per member. Joining with the same account a
+person is drafting from evicts that person, which was proven on the 9/4 practice draft:
+the room decoded perfectly and then closed us within seconds. A co-manager is a
+different member, which is the case ESPN is built for.
+
+It goes on the owner's own team rather than the commissioner's for one reason. If the
+limit ever turns out to be per team rather than per member, the disruption lands on the
+person running the show, who is sitting at the laptop and can react, rather than on a
+friend who is just trying to draft.
+
+A practice draft is a **separate, temporary league** with its own id, and ESPN deletes it
+when it finishes - 423733550 was gone within the hour. So run `npm run probe -- <id>`
+to read each new one, and use `--league <id>` rather than editing the environment file.
+
 ## Decisions that still hold
 
 - **One local process.** In-memory state plus JSON on disk, server-sent events to the two
