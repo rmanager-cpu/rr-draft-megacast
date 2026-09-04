@@ -47,6 +47,9 @@ const PORT = Number(flag("port", 7788));
 const HOST = String(flag("host", "127.0.0.1"));
 const SOURCE = String(flag("source", "replay"));
 const SPEED = Number(flag("speed", 1));
+// A practice draft inside the home league may run under its own id. Pointing the
+// show at one should not mean editing .env and forgetting to change it back.
+const LEAGUE_ID = Number(flag("league", env.ESPN_LEAGUE_ID || 0));
 
 const NL = String.fromCharCode(10);
 const SEP = NL + NL + "---" + NL + NL;
@@ -72,7 +75,7 @@ let source = null;
 
 const state = createState({
   season: SEASON,
-  leagueId: Number(env.ESPN_LEAGUE_ID || 0),
+  leagueId: LEAGUE_ID,
   bus,
   onWarn: (w) => log("persist:", w),
 });
@@ -614,7 +617,7 @@ server.listen(PORT, HOST, async () => {
   if (SOURCE === "live") {
     league = await loadLeague({
       season: SEASON,
-      leagueId: env.ESPN_LEAGUE_ID,
+      leagueId: LEAGUE_ID,
       cookie: "SWID=" + env.ESPN_SWID + "; espn_s2=" + env.ESPN_S2,
       onInfo: log,
       onWarn: (w) => log("warn:", w),
@@ -628,13 +631,13 @@ server.listen(PORT, HOST, async () => {
     });
     const mine = league.teams.find((t) => (t.owners || []).includes(env.ESPN_SWID));
     if (!mine) {
-      log("this ESPN account owns no team in league " + env.ESPN_LEAGUE_ID + " - it must be a member to join the draft room");
+      log("this ESPN account owns no team in league " + LEAGUE_ID + " - it must be a member to join the draft room");
       state.warn("the watcher account owns no team in this league");
       return;
     }
     log("joining the draft room as team #" + mine.id + " (" + mine.name + ")");
     source = createLiveSource({
-      leagueId: Number(env.ESPN_LEAGUE_ID),
+      leagueId: LEAGUE_ID,
       teamId: mine.id,
       swid: env.ESPN_SWID,
       cookie: "SWID=" + env.ESPN_SWID + "; espn_s2=" + env.ESPN_S2,

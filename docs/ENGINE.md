@@ -188,3 +188,10 @@ show cannot tell them apart.
   pass or fail.
 - `npm run probe -- <leagueId>` asks whether a given league's draft room can be read. The
   plain form touches nothing and is safe to run against the real league.
+
+Best of all, ESPN lets you run a practice draft inside the home league. That is a real
+room on the real wire with the real settings and the real twelve managers, so it exercises
+everything a mock lobby does plus the parts a mock cannot: your cookies, your team
+membership, your draft order, your clock. If the practice room reports its own league id,
+the probe says so, and `npm start -- --league <id>` points the show at it without touching
+the environment file.

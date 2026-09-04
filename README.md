@@ -14,6 +14,7 @@ npm run replay:step                        one pick at a time, for building thin
 npm run synth                              an invented 12-team, 16-round draft
 npm run soak                               two hours, both TVs, unattended
 npm run probe -- <leagueId>                can we read that league? (safe on the real one)
+npm start -- --league <id>                 run the show against a practice draft
 ```
 
 Then open, on the show computer:
@@ -28,6 +29,23 @@ Then open, on the show computer:
 
 Everything binds to `127.0.0.1`. The TVs are Chrome windows on this laptop, not devices on
 the venue network, so the venue Wi-Fi dropping cannot touch them.
+
+## Rehearsing on a real draft
+
+ESPN lets you run a practice draft inside the home league, and that is the rehearsal
+worth having: your twelve teams, your settings, your clock, your managers.
+
+1. Start the practice draft in ESPN.
+2. `npm run probe -- <leagueId> --connect`. If the room reports a different league id
+   than the one you asked about, it says so and tells you which to use.
+3. `npm start -- --league <that id>` and open the three windows.
+
+Everything downstream is identical to draft night. The only difference the show can see
+is which room it joined.
+
+If a practice draft is not running, `npm run probe -- <leagueId>` on its own is still
+safe against the real league at any time. It reads the settings and asks whether the room
+will issue a token. It cannot start, alter or consume a draft.
 
 ## Before draft night
 

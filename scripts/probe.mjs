@@ -96,7 +96,10 @@ async function main() {
     onFrame: (f) => {
       if (f.cmd === "INIT" && !sawInit) {
         sawInit = true;
-        const r = decodeInit(f.bytes, { leagueId: Number(leagueId) });
+        // Do not insist the room reports the id we asked about. A practice draft
+        // inside the home league may run under its own, and refusing to read a
+        // perfectly good snapshot over that would be exactly the wrong answer.
+        const r = decodeInit(f.bytes, {});
         if (!r.ok) {
           console.log("  room snapshot: could not be read (" + r.reason + ")");
           return;
@@ -104,6 +107,11 @@ async function main() {
         const made = r.records.filter((x) => x.playerId !== null).length;
         console.log("  room snapshot: " + r.teams + " teams, " + r.rounds + " rounds, " + r.total + " picks, " + made + " already made");
         console.log("  first round order: " + r.records.slice(0, r.teams).map((x) => x.teamId).join(" "));
+        if (r.leagueId !== Number(leagueId)) {
+          console.log("");
+          console.log("  NOTE: the room reports league " + r.leagueId + ", not " + leagueId + ".");
+          console.log("  That is the id to run the show against:  npm start -- --league " + r.leagueId);
+        }
       }
       if (f.cmd === "SELECTED") {
         picks++;
