@@ -52,6 +52,22 @@ for (const [path, name] of [
   if (name === "studio") await page.click("#arm").catch(() => {});
 }
 
+// Press Launch, the way the night does. Without it the board sits behind its
+// standby veil for two hours and the soak never exercises what the room sees.
+await fetch(base + "/api/audio-confirm", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ heard: true }),
+}).catch(() => {});
+const launched = await fetch(base + "/api/launch", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ force: true }),
+})
+  .then((r) => r.json())
+  .catch(() => ({ ok: false }));
+note("launched: " + JSON.stringify(launched.ok));
+
 let baselineRss = 0;
 let peakRss = 0;
 let lastPicks = -1;
@@ -102,6 +118,7 @@ else {
   if (state.counters.suspects) problems.push(state.counters.suspects + " picks flagged");
   if (new Set(state.picks.map((p) => p.playerId)).size !== state.picks.length) problems.push("a player was drafted twice");
   if (state.phase !== "complete") problems.push("the draft never reported complete");
+  if (!state.launch.launchedAt) problems.push("the show was never launched");
 }
 if (peakRss - baselineRss > 120) problems.push(`memory grew ${peakRss - baselineRss}MB`);
 if (pageErrors.length) problems.push(pageErrors.length + " page errors: " + pageErrors.slice(0, 3).join(" | "));
