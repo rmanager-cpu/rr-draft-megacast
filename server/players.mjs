@@ -9,7 +9,21 @@
 
 import { readJsonSync, writeAtomicSync } from "./persist.mjs";
 
-const POS = { 1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "D/ST" };
+// Read off the live table rather than remembered: ids 7 and 9 through 15 are
+// punters, the defensive positions, head coaches and ESPN's team-QB aggregate
+// rows. They are in the player table with draft positions attached, so leaving
+// them unmapped put "?" on a television and filled the curation list with
+// linebackers.
+const POS = {
+  "-1": "OL", 0: "OL", 1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 7: "P",
+  9: "DT", 10: "DE", 11: "LB", 12: "CB", 13: "S", 14: "HC", 15: "TQB", 16: "D/ST",
+  17: "DE", 18: "OL",
+};
+
+// What a standard redraft league can actually roster. Everything else is real
+// data that simply cannot be picked, so it does not belong in the curation list
+// or the synthetic draft's pool.
+export const STANDARD_POSITIONS = ["QB", "RB", "WR", "TE", "K", "D/ST"];
 const NFL = {
   0: "FA", 1: "ATL", 2: "BUF", 3: "CHI", 4: "CIN", 5: "CLE", 6: "DAL", 7: "DEN", 8: "DET",
   9: "GB", 10: "TEN", 11: "IND", 12: "KC", 13: "LV", 14: "LAR", 15: "MIA", 16: "MIN",
@@ -66,6 +80,7 @@ export async function loadPlayers({
   cacheFile = "data/players.json",
   maxAgeHours = 24,
   cookie,
+  draftable = STANDARD_POSITIONS,
   onInfo = () => {},
   onWarn = () => {},
 } = {}) {
@@ -74,32 +89,37 @@ export async function loadPlayers({
 
   if (cached?.players?.length && ageHours < maxAgeHours) {
     onInfo(`players: ${cached.players.length} from cache, ${ageHours.toFixed(1)}h old`);
-    return index(cached.players, { source: "cache", ageHours });
+    return index(cached.players, { source: "cache", ageHours }, draftable);
   }
 
   try {
     const players = await fetchPlayers({ season, cookie });
     writeAtomicSync(cacheFile, { fetchedAt: new Date().toISOString(), season, players }, { onWarn });
     onInfo(`players: ${players.length} from ESPN, cached`);
-    return index(players, { source: "network", ageHours: 0 });
+    return index(players, { source: "network", ageHours: 0 }, draftable);
   } catch (e) {
     if (cached?.players?.length) {
       onWarn(`players: ESPN unreachable (${e.message}); using a cache ${ageHours.toFixed(1)}h old`);
-      return index(cached.players, { source: "stale-cache", ageHours });
+      return index(cached.players, { source: "stale-cache", ageHours }, draftable);
     }
     onWarn(`players: no table available (${e.message}); picks will show ids`);
-    return index([], { source: "none", ageHours: Infinity });
+    return index([], { source: "none", ageHours: Infinity }, draftable);
   }
 }
 
-function index(players, meta) {
+function index(players, meta, draftable = STANDARD_POSITIONS) {
   const byId = new Map(players.map((p) => [p.id, p]));
-  const byAdp = players.filter((p) => p.adp).sort((a, b) => a.adp - b.adp);
+  const canBeDrafted = new Set(draftable);
+  const byAdp = players
+    .filter((p) => p.adp && canBeDrafted.has(p.pos))
+    .sort((a, b) => a.adp - b.adp);
   return {
     ...meta,
     size: players.length,
     all: players,
+    /** Draft order, and only players who can actually be drafted. */
     byAdp,
+    draftablePositions: [...canBeDrafted],
     get(id) {
       return byId.get(id) ?? null;
     },

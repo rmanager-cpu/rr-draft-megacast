@@ -1,39 +1,75 @@
 {
   "_": "The knobs. Edit this file directly; the show reads it at boot and freezes it at Launch.",
-
   "pickAudio": "sting+name",
+  "_draftablePositions": "Only set this if the league drafts defensive players. Default: QB, RB, WR, TE, K, D/ST.",
+  "draftablePositions": [
+    "QB",
+    "RB",
+    "WR",
+    "TE",
+    "K",
+    "D/ST"
+  ],
   "_pickAudio": "sting | sting+name | call",
-
-  "recapAfterRounds": [1, 2, 4, 6, 8, 10, 12, 14, 16],
+  "recapAfterRounds": [
+    1,
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16
+  ],
   "opinionsPerRecap": 4,
-  "recapSeconds": { "early": 70, "later": 100 },
-
+  "recapSeconds": {
+    "early": 70,
+    "later": 100
+  },
   "interjections": {
     "maxPerRound": 2,
     "cooldownSeconds": 90,
     "dropIfLaterThanSeconds": 10,
-    "triggers": ["value", "reach", "run", "early K", "early D/ST"]
+    "triggers": [
+      "value",
+      "reach",
+      "run",
+      "early K",
+      "early D/ST"
+    ]
   },
-
   "reveal": {
-    "full":  { "stingMs": 1200, "cardInMs": 700, "dwellMs": 15400, "outMs": 700 },
-    "short": { "stingMs": 600,  "cardInMs": 500, "dwellMs": 6400,  "outMs": 500 },
-    "card":  { "stingMs": 0,    "cardInMs": 400, "dwellMs": 3200,  "outMs": 400 },
+    "full": {
+      "stingMs": 1200,
+      "cardInMs": 700,
+      "dwellMs": 15400,
+      "outMs": 700
+    },
+    "short": {
+      "stingMs": 600,
+      "cardInMs": 500,
+      "dwellMs": 6400,
+      "outMs": 500
+    },
+    "card": {
+      "stingMs": 0,
+      "cardInMs": 400,
+      "dwellMs": 3200,
+      "outMs": 400
+    },
     "minOnScreenMs": 2500,
     "shortThreshold": 1,
     "cardThreshold": 3,
     "catchupMode": "newest",
     "catchupStripMs": 2500
   },
-
   "voices": {
     "_": "ElevenLabs voice ids. Leave blank and the laptop's own voice is used.",
     "play": "",
     "colour": ""
   },
-
   "openText": "Welcome to the River Ranch draft.",
-
   "bits": [
     {
       "_": "Pre-written, pre-rendered. Plays when this manager comes on the clock in this round.",

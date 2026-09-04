@@ -592,7 +592,13 @@ server.on("error", (e) => {
 server.listen(PORT, HOST, async () => {
   log("show server on http://" + HOST + ":" + PORT + "   board /board   studio /studio   ops /status");
 
-  players = await loadPlayers({ season: SEASON, onInfo: log, onWarn: (w) => log("warn:", w) });
+  players = await loadPlayers({
+    season: SEASON,
+    // An individual-defensive-player league would set this in the show config.
+    draftable: showConfig.draftablePositions,
+    onInfo: log,
+    onWarn: (w) => log("warn:", w),
+  });
   registerCoreChecks(launch, { state, getSource: () => source, players });
   launch.registerCheck("catalog", {
     label: "Highlight catalogue",
