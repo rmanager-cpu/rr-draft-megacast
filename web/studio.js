@@ -1,4 +1,4 @@
-import { connect, heartbeat, keepAwake, POS_CLASS, register } from "./common.js";
+import { connect, drain, heartbeat, keepAwake, POS_CLASS, register } from "./common.js";
 
 const standby = document.getElementById("standby");
 const nextUp = document.getElementById("nextup");
@@ -27,9 +27,31 @@ const serverNow = () => Date.now() + skew;
 const shotUrl = (c) => "/img/headshot/" + c.playerId + (c.proTeam ? "?team=" + encodeURIComponent(c.proTeam) : "");
 
 // Start the image fetch the moment a pick commits, not when its reveal begins.
+//
+// Capped, because a catch-up after a dropout can commit thirty picks at once and
+// Chrome only opens six connections to one host. Thirty images queued in front
+// of the heartbeat is how a page slowly runs out of room over a long draft.
+const preloadQueue = [];
+let preloading = 0;
+
 function preload(playerId, proTeam) {
-  const img = new Image();
-  img.src = shotUrl({ playerId, proTeam });
+  preloadQueue.push(shotUrl({ playerId, proTeam }));
+  pumpPreload();
+}
+
+function pumpPreload() {
+  while (preloading < 2 && preloadQueue.length) {
+    const url = preloadQueue.shift();
+    preloading++;
+    const img = new Image();
+    const done = () => {
+      preloading--;
+      pumpPreload();
+    };
+    img.onload = done;
+    img.onerror = done;
+    img.src = url;
+  }
 }
 
 function initials(c) {
@@ -296,7 +318,9 @@ function done(id) {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ id }),
-  }).catch(() => {});
+  })
+    .then(drain)
+    .catch(() => {});
 }
 
 /** The always-available voice. Real voices layer on top of this, never under it. */

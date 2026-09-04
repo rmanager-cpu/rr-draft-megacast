@@ -43,13 +43,47 @@ export function register(display, extra = {}) {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
-  }).catch(() => {});
+  })
+    .then(drain)
+    .catch(() => {});
 }
 
-/** Tell the server we are alive and which version we have drawn. */
+/** Read and discard the reply. An unread body keeps its connection occupied. */
+export function drain(res) {
+  try {
+    return res.arrayBuffer().catch(() => {});
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Tell the server we are alive and which version we have drawn.
+ *
+ * Two things this must not do over a two-hour draft. It must not let requests
+ * pile up if the server ever stalls, so a beat is skipped while one is still in
+ * flight and every one has a hard timeout. And it must read the reply, because
+ * an unread response body holds its connection open.
+ */
 export function heartbeat(display, getVersion, getBuild = () => "") {
-  setInterval(() => {
-    fetch("/api/ack?display=" + display + "&v=" + getVersion() + "&build=" + encodeURIComponent(getBuild())).catch(() => {});
+  let inFlight = false;
+  setInterval(async () => {
+    if (inFlight) return;
+    inFlight = true;
+    const stop = new AbortController();
+    const timer = setTimeout(() => stop.abort(), 4000);
+    try {
+      const res = await fetch(
+        "/api/ack?display=" + display + "&v=" + getVersion() + "&build=" + encodeURIComponent(getBuild()),
+        { signal: stop.signal },
+      );
+      await drain(res);
+    } catch {
+      // The status page shows the connection state; a missed beat is not news.
+    } finally {
+      clearTimeout(timer);
+      inFlight = false;
+    }
   }, 2000);
 }
 
