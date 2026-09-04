@@ -15,6 +15,7 @@ const arm = document.getElementById("arm");
 const down = document.getElementById("down");
 
 let version = 0;
+let buildId = "";
 let skew = 0; // serverTime minus our clock, so a deadline means the same on both sides
 let current = null;
 let raf = null;
@@ -119,6 +120,7 @@ function hideCard() {
 connect("studio", {
   hello: (d) => {
     version = d.version;
+    buildId = d.buildId || "";
     skew = (d.serverTime || Date.now()) - Date.now();
     if (d.reveal && d.reveal.card) {
       // A TV that just reloaded picks the card back up with its time remaining.
@@ -164,11 +166,23 @@ connect("studio", {
     clearTimeout(catchupTimer);
     catchupTimer = setTimeout(() => catchup.classList.remove("show"), d.ms || 2500);
   },
+  say: (d) => speak(d.text),
   status: (d) => {
     if (d.version) version = d.version;
   },
   onConnection: (s) => down.classList.toggle("show", !s.connected),
 });
+
+/** The always-available voice. Real voices layer on top of this, never under it. */
+function speak(text) {
+  if (!text || !window.speechSynthesis) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.02;
+    u.pitch = 0.95;
+    window.speechSynthesis.speak(u);
+  } catch {}
+}
 
 // Chrome will not play audio in a tab that has never been clicked. This is the
 // one touch a TV ever gets, and it happens during setup, not during the show.
@@ -184,5 +198,5 @@ arm.addEventListener("click", async () => {
 });
 
 register("studio", { audioArmed: false });
-heartbeat("studio", () => version);
+heartbeat("studio", () => version, () => buildId);
 keepAwake();

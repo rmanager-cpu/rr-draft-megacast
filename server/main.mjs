@@ -16,11 +16,13 @@ import { createState } from "./state.mjs";
 import { createReconciler } from "./reconcile.mjs";
 import { createFrameHandler } from "./pipeline.mjs";
 import { createReplaySource } from "./src-replay.mjs";
+import { createLiveSource } from "./src-live.mjs";
 import { loadPlayers, splitName } from "./players.mjs";
 import { loadLeague, placeholderLeague } from "./league.mjs";
 import { createReveal } from "./reveal.mjs";
 import { createHeadshots } from "./headshots.mjs";
 import { readJsonSync } from "./persist.mjs";
+import { createLaunch, registerCoreChecks } from "./launch.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {
@@ -61,6 +63,7 @@ state.apply((s) => {
 
 const sse = createSse({ state });
 const showConfig = readJsonSync("data/show.config.json", {}) ?? {};
+const launch = createLaunch({ state, sse, onInfo: log });
 const headshots = createHeadshots({ onWarn: (w) => log("headshots:", w) });
 
 // TV 2. The server owns the queue and the clock; the browser just plays what it
@@ -120,6 +123,7 @@ function hello() {
   return {
     serverTime: Date.now(),
     version: state.version,
+    buildId: state.buildId,
     league: { name: league.name, teams: league.teams, rounds: s.draft.rounds || league.rounds },
     phase: s.phase,
     connection: s.connection,
@@ -231,11 +235,49 @@ const handleFrame = createFrameHandler({
 
 // -------------------------------------------------------------------- routes
 
+function wireEvent(kind, detail) {
+  log("wire " + kind + ": " + detail);
+  state.touch((s) => {
+    if (kind === "open") {
+      s.connection.status = "connected";
+      s.connection.attempts = 0;
+    }
+    if (kind === "close") s.connection.status = "reconnecting";
+    if (kind === "error") s.connection.attempts = (s.connection.attempts || 0) + 1;
+    s.connection.detail = String(detail);
+    s.connection.since = Date.now();
+    s.connection.lastFrameAt = Date.now();
+  });
+  sse.send("status", { connection: state.state.connection, version: state.version });
+}
+
 const routes = {
   "GET /events": ({ req, res, url }) => {
     sse.attach(req, res, { display: url.searchParams.get("display") ?? "ops", hello });
   },
   "GET /img/headshot/:id": (ctx) => headshots.serve(ctx),
+  "GET /api/checks": async ({ json }) => json(200, await launch.evaluate()),
+  "POST /api/launch": async ({ body, json }) => {
+    const gate = await launch.evaluate();
+    if (!gate.ready && !body.force) return json(409, { ok: false, reason: "not all checks are green", checks: gate.checks });
+    return json(200, launch.launch({ force: !!body.force }));
+  },
+  "POST /api/audio-test": ({ json }) => {
+    sse.send("say", { text: "River Ranch draft booth. Testing, one, two.", test: true });
+    return json(200, { ok: true });
+  },
+  "POST /api/audio-confirm": ({ body, json }) => {
+    state.apply((s) => (s.launch.audioConfirmed = body.heard !== false));
+    return json(200, { ok: true });
+  },
+  "POST /api/resync": ({ json }) => {
+    // Force a reconnect so a fresh room snapshot heals whatever we are missing.
+    if (!source) return json(409, { ok: false, reason: "no source" });
+    if (source.simulated) return json(409, { ok: false, reason: "the replay source reconnects on its own schedule" });
+    source.close();
+    source.start().catch((e) => log("resync failed:", e.message));
+    return json(200, { ok: true });
+  },
   "GET /api/state": ({ json }) => json(200, hello()),
   "GET /api/health": ({ json }) =>
     json(200, {
@@ -262,15 +304,14 @@ const routes = {
   },
   "GET /api/ack": ({ url, json }) => {
     const display = url.searchParams.get("display") ?? "";
-    const v = Number(url.searchParams.get("v") ?? 0);
     state.touch((s) => {
       const d = s.launch.displays[display];
-      if (d) {
-        d.lastSeen = Date.now();
-        d.acked = v;
-      }
+      if (!d) return;
+      d.lastSeen = Date.now();
+      d.acked = Number(url.searchParams.get("v") ?? 0);
+      d.build = url.searchParams.get("build") ?? "";
     });
-    return json(200, { ok: true, version: state.version });
+    return json(200, { ok: true, version: state.version, buildId: state.buildId });
   },
   "POST /api/pick": ({ body, json }) => {
     if (!reconciler) return json(409, { ok: false, reason: "the draft has not started" });
@@ -318,6 +359,7 @@ server.listen(PORT, HOST, async () => {
   log("show server on http://" + HOST + ":" + PORT + "   board /board   studio /studio   ops /status");
 
   players = await loadPlayers({ season: SEASON, onInfo: log, onWarn: (w) => log("warn:", w) });
+  registerCoreChecks(launch, { state, getSource: () => source, players });
 
   if (SOURCE === "live") {
     league = await loadLeague({
@@ -334,7 +376,25 @@ server.listen(PORT, HOST, async () => {
       s.draft.keeperCount = league.keeperCount;
       s.draft.teams = league.teams;
     });
-    log("the live wire is not attached in this build yet - use --source replay");
+    const mine = league.teams.find((t) => (t.owners || []).includes(env.ESPN_SWID));
+    if (!mine) {
+      log("this ESPN account owns no team in league " + env.ESPN_LEAGUE_ID + " - it must be a member to join the draft room");
+      state.warn("the watcher account owns no team in this league");
+      return;
+    }
+    log("joining the draft room as team #" + mine.id + " (" + mine.name + ")");
+    source = createLiveSource({
+      leagueId: Number(env.ESPN_LEAGUE_ID),
+      teamId: mine.id,
+      swid: env.ESPN_SWID,
+      cookie: "SWID=" + env.ESPN_SWID + "; espn_s2=" + env.ESPN_S2,
+      season: SEASON,
+      onFrame: handleFrame,
+      onEvent: wireEvent,
+      onRtt: (ms) => state.touch((s) => (s.connection.rttMs = ms)),
+    });
+    state.apply((s) => (s.source = source.name));
+    await source.start();
     return;
   }
 
@@ -343,17 +403,7 @@ server.listen(PORT, HOST, async () => {
     step: has("step"),
     from: Number(flag("from", 0)),
     onFrame: handleFrame,
-    onEvent: (kind, detail) => {
-      log("wire " + kind + ": " + detail);
-      state.touch((s) => {
-        if (kind === "open") s.connection.status = "connected";
-        if (kind === "close") s.connection.status = "reconnecting";
-        s.connection.detail = String(detail);
-        s.connection.since = Date.now();
-        s.connection.lastFrameAt = Date.now();
-      });
-      sse.send("status", { connection: state.state.connection, version: state.version });
-    },
+    onEvent: wireEvent,
   });
   if (has("drop-at")) {
     source.injectFault("drop", { atPick: Number(flag("drop-at", 45)), picks: Number(flag("drop-picks", 8)) });

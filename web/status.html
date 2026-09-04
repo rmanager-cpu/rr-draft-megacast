@@ -1,0 +1,37 @@
+<title>Status — River Ranch Megacast</title>
+<link rel="stylesheet" href="/web/ops.css" />
+<main>
+  <h1 id="title">Status</h1>
+  <p class="sub" id="sub"></p>
+  <div class="sim" id="sim">SIMULATOR — this is not the real draft</div>
+
+  <div class="card">
+    <h2>Now</h2>
+    <div class="grid" id="stats"></div>
+  </div>
+
+  <div class="card">
+    <h2>Emergency pick</h2>
+    <p class="note">Only if the wire is dead and a pick has to reach the board by hand.</p>
+    <div class="row">
+      <select id="team"></select>
+      <input id="player" placeholder="player name" size="28" />
+      <button id="enter">Enter pick</button>
+      <span id="pickmsg" class="note"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Recovery</h2>
+    <div class="row">
+      <button id="resync">Force a reconnect</button>
+      <span class="note">Pulls a fresh room snapshot, which fills in anything missed.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Warnings</h2>
+    <div class="log" id="warnings"></div>
+  </div>
+</main>
+<script type="module" src="/web/status.js"></script>

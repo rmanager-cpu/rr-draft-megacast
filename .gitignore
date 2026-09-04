@@ -19,3 +19,4 @@ data/state.json
 data/picks.jsonl
 data/headshots/
 data/audio/cache/
+data/*.tmp

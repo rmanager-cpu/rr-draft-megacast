@@ -10,7 +10,7 @@
 
 const TOPICS = {
   board: new Set(["hello", "pick", "correction", "gap", "onclock", "clock", "status", "launch", "reload"]),
-  studio: new Set(["hello", "preload", "reveal", "revealcut", "revealdone", "status", "launch", "reload"]),
+  studio: new Set(["hello", "preload", "reveal", "revealcut", "revealdone", "catchup", "say", "status", "launch", "reload"]),
   ops: null, // everything
 };
 

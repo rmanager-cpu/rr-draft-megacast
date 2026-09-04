@@ -47,9 +47,9 @@ export function register(display, extra = {}) {
 }
 
 /** Tell the server we are alive and which version we have drawn. */
-export function heartbeat(display, getVersion) {
+export function heartbeat(display, getVersion, getBuild = () => "") {
   setInterval(() => {
-    fetch("/api/ack?display=" + display + "&v=" + getVersion()).catch(() => {});
+    fetch("/api/ack?display=" + display + "&v=" + getVersion() + "&build=" + encodeURIComponent(getBuild())).catch(() => {});
   }, 2000);
 }
 

@@ -1,0 +1,85 @@
+/* The laptop windows: /launch before the show, /status during it. Dense on
+   purpose - this is the one screen an operator reads under pressure. */
+:root {
+  --bg: #0e1117;
+  --panel: #171c26;
+  --line: #262e3d;
+  --ink: #e9eef7;
+  --dim: #8b98ad;
+  --ok: #3ec98a;
+  --bad: #e2635c;
+  --warn: #e3b23c;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.45 "Segoe UI", system-ui, sans-serif;
+}
+main { max-width: 1100px; margin: 0 auto; padding: 26px 22px 60px; }
+h1 { font-size: 26px; margin: 0 0 4px; }
+.sub { color: var(--dim); margin: 0 0 22px; }
+
+.sim {
+  background: #5d1a1a;
+  color: #ffd9d9;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  margin-bottom: 18px;
+  display: none;
+}
+.sim.show { display: block; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
+.card h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 0 0 12px; }
+
+.check { display: flex; align-items: baseline; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.check:last-child { border-bottom: 0; }
+.check .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bad); flex: none; }
+.check.ok .dot { background: var(--ok); }
+.check.na .dot { background: #4a5568; }
+.check .label { flex: none; width: 260px; font-weight: 600; }
+.check .detail { color: var(--dim); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.stat .k { color: var(--dim); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+.stat .v { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat .v.bad { color: var(--bad); }
+.stat .v.warn { color: var(--warn); }
+
+button {
+  font: inherit;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #222b3a;
+  color: var(--ink);
+  cursor: pointer;
+}
+button:hover { background: #2a3648; }
+button[disabled] { opacity: .45; cursor: not-allowed; }
+button.go { background: var(--ok); color: #04140c; border-color: transparent; font-size: 18px; padding: 14px 30px; }
+button.go[disabled] { background: #2a3648; color: var(--dim); }
+
+input, select {
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #10151d;
+  color: var(--ink);
+}
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.note { color: var(--dim); font-size: 13px; margin-top: 8px; }
+.err { color: var(--bad); }
+.good { color: var(--ok); }
+
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+td { padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line); }
+td.dimc { color: var(--dim); }
+.log { font-family: Consolas, monospace; font-size: 13px; color: var(--dim); max-height: 260px; overflow: auto; }
+.log div { padding: 2px 0; border-bottom: 1px solid #1c222d; }

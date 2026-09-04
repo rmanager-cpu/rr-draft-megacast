@@ -16,7 +16,12 @@ export function createState({ season, leagueId, bus, stateFile = "data/state.jso
   let seq = 0;
   let saveTimer = null;
 
+  // Unique to this process. A TV left open from a previous run reports the old
+  // one, which is exactly the failure the launch gate has to catch.
+  const buildId = String(Date.now().toString(36));
+
   const s = {
+    buildId,
     season,
     leagueId,
     leagueName: "",
@@ -106,6 +111,7 @@ export function createState({ season, leagueId, bus, stateFile = "data/state.jso
   }
 
   return {
+    buildId,
     get state() {
       return s;
     },

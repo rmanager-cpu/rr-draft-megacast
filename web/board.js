@@ -12,6 +12,7 @@ let rounds = 16;
 let order = [];
 const cells = new Map(); // overall pick number -> element
 let version = 0;
+let buildId = "";
 let wireDownSince = 0;
 
 /** Build the whole grid once, then only ever patch single cells. */
@@ -117,6 +118,7 @@ function banner(kind, text) {
 const state = connect("board", {
   hello: (d) => {
     version = d.version;
+    buildId = d.buildId || "";
     build(d);
     banner("", "");
   },
@@ -165,5 +167,5 @@ setInterval(() => {
 }, 1000);
 
 register("board");
-heartbeat("board", () => version);
+heartbeat("board", () => version, () => buildId);
 keepAwake();

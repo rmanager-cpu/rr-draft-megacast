@@ -1,0 +1,34 @@
+<title>Launch — River Ranch Megacast</title>
+<link rel="stylesheet" href="/web/ops.css" />
+<main>
+  <h1>Launch</h1>
+  <p class="sub">Press once, fifteen minutes before the draft. Nobody touches the laptop after that.</p>
+  <div class="sim" id="sim">SIMULATOR — this is not the real draft</div>
+
+  <div class="card">
+    <h2>Preflight</h2>
+    <div id="checks"></div>
+    <div class="row" style="margin-top:16px">
+      <button class="go" id="go" disabled>Launch the show</button>
+      <span id="launched" class="good"></span>
+    </div>
+    <p class="note" id="why"></p>
+  </div>
+
+  <div class="card">
+    <h2>Speaker test</h2>
+    <div class="row">
+      <button id="test">Play the test line</button>
+      <button id="heard">I heard it</button>
+      <span id="audionote" class="note"></span>
+    </div>
+    <p class="note">Chrome will not play sound in a window that has never been clicked. Click the studio window once first.</p>
+  </div>
+
+  <div class="card">
+    <h2>Displays</h2>
+    <table id="displays"></table>
+    <p class="note">Open /board on TV 1 and /studio on TV 2, each full screen at 1080p.</p>
+  </div>
+</main>
+<script type="module" src="/web/launch.js"></script>
