@@ -146,6 +146,34 @@ body {
 .who .to b { color: var(--gold); font-weight: 800; }
 .who .mgr { font-size: 26px; color: var(--dim); margin-top: 4px; }
 
+/* ---------- the clip ----------
+   It sits over the card, and it only ever becomes visible once the player has
+   actually reported that it is playing. Until then the card is what is on
+   screen, so a clip that never starts costs nothing. */
+#clip {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .28s ease;
+}
+#clip.live { opacity: 1; }
+#clip iframe { width: 100%; height: 100%; border: 0; }
+#cliptag {
+  position: absolute;
+  left: 34px;
+  bottom: 26px;
+  z-index: 3;
+  font-size: 30px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, .8);
+  opacity: 0;
+  transition: opacity .28s ease;
+}
+#cliptag.live { opacity: 1; }
+
 /* ---------- time remaining ---------- */
 #bar { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: rgba(255, 255, 255, .06); }
 #bar i { display: block; height: 100%; width: 0; background: var(--accent); }

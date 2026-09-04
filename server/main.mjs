@@ -22,6 +22,7 @@ import { loadPlayers, splitName } from "./players.mjs";
 import { loadLeague, placeholderLeague } from "./league.mjs";
 import { createReveal } from "./reveal.mjs";
 import { createHeadshots } from "./headshots.mjs";
+import { createHighlights } from "./highlights.mjs";
 import { readJsonSync } from "./persist.mjs";
 import { createLaunch, registerCoreChecks } from "./launch.mjs";
 import { createAudio, KIND } from "./audio.mjs";
@@ -112,6 +113,7 @@ const booth = createBooth({
   onInfo: log,
 });
 const headshots = createHeadshots({ onWarn: (w) => log("headshots:", w) });
+const highlights = createHighlights({ onWarn: (w) => log("highlights:", w), onInfo: log });
 
 // TV 2. The server owns the queue and the clock; the browser just plays what it
 // is told and holds until the deadline it was given.
@@ -136,6 +138,7 @@ const reveal = createReveal({
   },
   onCatchup: (e) => sse.send("catchup", e),
 });
+reveal.setContentProvider((card) => highlights.contentFor(card));
 
 // ------------------------------------------------------------- card building
 
@@ -399,6 +402,30 @@ const routes = {
     return json(200, { ok: true });
   },
   "GET /api/checks": async ({ json }) => json(200, await launch.evaluate()),
+  "GET /api/catalog": ({ url, json }) => {
+    const limit = Number(url.searchParams.get("limit") ?? 120);
+    const rows = (players?.byAdp ?? []).slice(0, limit).map((p) => ({
+      playerId: p.id,
+      name: p.name,
+      pos: p.pos,
+      proTeam: p.proTeam,
+      adp: p.adp,
+      clip: highlights.all[String(p.id)] ?? null,
+    }));
+    return json(200, { total: players?.byAdp?.length ?? 0, withClips: highlights.size, rows });
+  },
+  "POST /api/catalog": ({ body, json }) => {
+    const res = highlights.set(Number(body.playerId), {
+      videoId: body.url ?? body.videoId,
+      start: body.start,
+      ceilingMs: body.ceilingMs,
+      title: body.title,
+      note: body.note,
+    });
+    return json(res.ok ? 200 : 400, res);
+  },
+  "POST /api/catalog/remove": ({ body, json }) => json(200, highlights.remove(Number(body.playerId))),
+  "POST /api/catalog/preflight": async ({ json }) => json(200, await highlights.preflight()),
   "POST /api/launch": async ({ body, json }) => {
     const gate = await launch.evaluate();
     if (!gate.ready && !body.force) return json(409, { ok: false, reason: "not all checks are green", checks: gate.checks });
@@ -502,6 +529,16 @@ server.listen(PORT, HOST, async () => {
 
   players = await loadPlayers({ season: SEASON, onInfo: log, onWarn: (w) => log("warn:", w) });
   registerCoreChecks(launch, { state, getSource: () => source, players });
+  launch.registerCheck("catalog", {
+    label: "Highlight catalogue",
+    blocking: false,
+    run: () => {
+      if (!highlights.size) return { ok: true, na: true, detail: "no clips - every pick gets its card" };
+      const stale = Object.values(highlights.all).filter((c) => c.videoId && !c.disabled && !c.verifiedAt).length;
+      if (stale) return { ok: false, detail: stale + " clips unverified - run the preflight on /curate" };
+      return { ok: true, detail: highlights.size + " clips verified" };
+    },
+  });
 
   if (SOURCE === "live") {
     league = await loadLeague({

@@ -11,6 +11,8 @@ const bar = document.querySelector("#bar i");
 const catchup = document.getElementById("catchup");
 const slate = document.getElementById("slate");
 const queueEl = document.getElementById("queue");
+const clipBox = document.getElementById("clip");
+const clipTag = document.getElementById("cliptag");
 const arm = document.getElementById("arm");
 const down = document.getElementById("down");
 
@@ -88,7 +90,97 @@ function showCard(e) {
   void cardEl.offsetWidth;
   setTimeout(() => cardEl.classList.add("in"), phases.stingMs);
 
+  // Cards-only mode never reaches for a clip; there is no time for one.
+  if (e.mode !== "card" && e.content) {
+    setTimeout(() => playClip(e.content, c, e.content.ceilingMs), phases.stingMs + phases.cardInMs);
+  } else {
+    stopClip();
+  }
+
   tick();
+}
+
+// ---------------------------------------------------------------- the clip
+//
+// The ladder, in order: the clip plays, or it does not start in time, or the
+// player never loads at all. Every rung lands on the card, which is already on
+// screen underneath. Nothing here can delay or replace the card.
+const CLIP_READY_MS = 1800;
+let ytPlayer = null;
+let ytReady = false;
+let clipTimer = null;
+
+function loadYouTube() {
+  if (window.YT?.Player || document.getElementById("ytapi")) return;
+  const s = document.createElement("script");
+  s.id = "ytapi";
+  s.src = "https://www.youtube.com/iframe_api";
+  s.onerror = () => {
+    ytReady = false;
+  };
+  document.head.append(s);
+}
+window.onYouTubeIframeAPIReady = () => {
+  ytReady = true;
+};
+
+function stopClip() {
+  clearTimeout(clipTimer);
+  clipBox.classList.remove("live");
+  clipTag.classList.remove("live");
+  try {
+    ytPlayer?.stopVideo?.();
+  } catch {}
+}
+
+function playClip(content, card, ceilingMs) {
+  stopClip();
+  if (!content || content.kind !== "video" || !ytReady || !window.YT?.Player) return;
+
+  const mount = document.createElement("div");
+  clipBox.replaceChildren(mount);
+  clipTag.textContent = card.lastName || card.name;
+
+  // If it has not actually started inside the window, give up and stay on the
+  // card. Silence and a card beat a black rectangle.
+  clipTimer = setTimeout(stopClip, CLIP_READY_MS);
+
+  try {
+    ytPlayer = new window.YT.Player(mount, {
+      videoId: content.videoId,
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        modestbranding: 1,
+        rel: 0,
+        playsinline: 1,
+        start: content.startSec || 0,
+        mute: 1,
+      },
+      events: {
+        onReady: (e) => {
+          try {
+            e.target.mute();
+            e.target.playVideo();
+          } catch {}
+        },
+        onStateChange: (e) => {
+          if (e.data !== window.YT.PlayerState.PLAYING) return;
+          clearTimeout(clipTimer);
+          clipBox.classList.add("live");
+          clipTag.classList.add("live");
+          // Length is a ceiling, and the reveal may have already shortened it.
+          const budget = Math.min(ceilingMs ?? 8000, Math.max(0, (current?.endsAt ?? 0) - serverNow()));
+          clipTimer = setTimeout(stopClip, Math.max(1200, budget));
+        },
+        onError: stopClip,
+      },
+    });
+  } catch {
+    stopClip();
+  }
 }
 
 function tick() {
@@ -104,6 +196,7 @@ function tick() {
 }
 
 function hideCard() {
+  stopClip();
   cardEl.classList.remove("in");
   cardEl.classList.add("out");
   current = null;
@@ -147,6 +240,8 @@ connect("studio", {
   revealcut: (d) => {
     if (!current || current.card.pick !== d.pick) return;
     current.endsAt = d.endsAt;
+    // Picks are waiting, so the clip goes first. The card is what must survive.
+    stopClip();
     queueEl.textContent = d.queueDepth > 0 ? d.queueDepth + " waiting" : "";
     tick();
   },
@@ -235,6 +330,7 @@ arm.addEventListener("click", async () => {
   register("studio", { audioArmed: true });
 });
 
+loadYouTube();
 register("studio", { audioArmed: false });
 heartbeat("studio", () => version, () => buildId);
 keepAwake();

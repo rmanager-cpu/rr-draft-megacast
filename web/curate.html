@@ -1,0 +1,53 @@
+<title>Curate — River Ranch Megacast</title>
+<link rel="stylesheet" href="/web/ops.css" />
+<style>
+  .layout { display: grid; grid-template-columns: 420px 1fr; gap: 18px; align-items: start; }
+  .list { max-height: 72vh; overflow: auto; }
+  .p { display: flex; gap: 10px; align-items: baseline; padding: 7px 8px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .p:hover { background: #1d2432; }
+  .p.on { background: #23304a; }
+  .p .adp { width: 44px; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .p .nm { flex: 1; font-weight: 600; }
+  .p .pos { color: var(--dim); width: 70px; }
+  .p .has { width: 14px; color: var(--ok); }
+  .frame { width: 100%; aspect-ratio: 16/9; background: #000; border: 0; border-radius: 8px; }
+  .who2 { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+</style>
+<main>
+  <h1>Curate</h1>
+  <p class="sub" id="sub">Work down the list in draft order. Anyone without a clip gets the animated card, which is the design.</p>
+
+  <div class="layout">
+    <div class="card list" id="list"></div>
+
+    <div>
+      <div class="card">
+        <div class="who2" id="who">Pick a player on the left</div>
+        <div class="row">
+          <input id="url" placeholder="paste the YouTube link" size="46" />
+          <input id="start" placeholder="start (1:23)" size="10" />
+          <input id="ceiling" placeholder="seconds" size="7" value="8" />
+          <button id="test">Test</button>
+          <button id="save">Save</button>
+          <button id="clear">Remove</button>
+        </div>
+        <p class="note" id="msg"></p>
+      </div>
+
+      <div class="card">
+        <h2>Preview</h2>
+        <iframe class="frame" id="frame" allow="autoplay" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+        <p class="note">Length is a ceiling. When picks are waiting the reveal cuts the clip short and keeps the card.</p>
+      </div>
+
+      <div class="card">
+        <h2>Preflight</h2>
+        <div class="row">
+          <button id="pre">Check every clip</button>
+          <span class="note" id="premsg"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script type="module" src="/web/curate.js"></script>
