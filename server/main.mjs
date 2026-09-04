@@ -18,6 +18,9 @@ import { createFrameHandler } from "./pipeline.mjs";
 import { createReplaySource } from "./src-replay.mjs";
 import { loadPlayers, splitName } from "./players.mjs";
 import { loadLeague, placeholderLeague } from "./league.mjs";
+import { createReveal } from "./reveal.mjs";
+import { createHeadshots } from "./headshots.mjs";
+import { readJsonSync } from "./persist.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {
@@ -57,6 +60,32 @@ state.apply((s) => {
 });
 
 const sse = createSse({ state });
+const showConfig = readJsonSync("data/show.config.json", {}) ?? {};
+const headshots = createHeadshots({ onWarn: (w) => log("headshots:", w) });
+
+// TV 2. The server owns the queue and the clock; the browser just plays what it
+// is told and holds until the deadline it was given.
+const reveal = createReveal({
+  config: showConfig.reveal ?? {},
+  onReveal: (e) => {
+    state.touch((s) => {
+      s.reveal.current = { pick: e.pick, mode: e.mode, endsAt: e.endsAt };
+      s.reveal.queueDepth = e.queueDepth;
+      s.reveal.revealed = reveal.revealed();
+    });
+    sse.send("reveal", { ...e, serverTime: Date.now() });
+    bus.emit("reveal:start", e);
+  },
+  onCut: (e) => sse.send("revealcut", e),
+  onDone: (e) => {
+    state.touch((s) => {
+      s.reveal.current = null;
+      s.reveal.queueDepth = reveal.depth();
+    });
+    sse.send("revealdone", e);
+  },
+  onCatchup: (e) => sse.send("catchup", e),
+});
 
 // ------------------------------------------------------------- card building
 
@@ -100,6 +129,7 @@ function hello() {
     gaps: s.gaps,
     counters: s.counters,
     launch: s.launch,
+    reveal: reveal.current() ? { ...reveal.current(), queueDepth: reveal.depth() } : null,
     simulated: s.simulated,
     source: s.source,
   };
@@ -134,10 +164,14 @@ function startReconciler(room) {
       for (const p of list) {
         const card = cardFor(p);
         log("PICK " + String(p.pick).padStart(3) + "  R" + p.round + "  " + card.teamName + " -> " + card.name + " (" + card.pos + " " + card.proTeam + ")");
-        sse.send("preload", { playerId: p.playerId });
+        sse.send("preload", { playerId: p.playerId, proTeam: card.proTeam });
         sse.send("pick", { ...card, catchup, version: state.version });
         bus.emit("pick", { pick: p, card, catchup });
       }
+      // A batch learned at once is a reconnect filling in what we missed. Showing
+      // them one by one would put the studio minutes behind the room.
+      if (catchup && list.length > 1) reveal.enqueueCatchup(list.map(cardFor));
+      else for (const p of list) reveal.enqueue(cardFor(p));
       if (reconciler.complete) finish();
     },
   });
@@ -201,6 +235,7 @@ const routes = {
   "GET /events": ({ req, res, url }) => {
     sse.attach(req, res, { display: url.searchParams.get("display") ?? "ops", hello });
   },
+  "GET /img/headshot/:id": (ctx) => headshots.serve(ctx),
   "GET /api/state": ({ json }) => json(200, hello()),
   "GET /api/health": ({ json }) =>
     json(200, {

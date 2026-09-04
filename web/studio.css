@@ -1,0 +1,210 @@
+/* TV 2: the reveal. One card at a time, big enough to read across a room. */
+:root {
+  --bg: #07090f;
+  --ink: #f4f7fd;
+  --dim: #8a97ae;
+  --gold: #ffd45e;
+  --qb: #d94f6a;
+  --rb: #35b47f;
+  --wr: #3d8ce0;
+  --te: #e08a3d;
+  --k: #9a7fd4;
+  --dst: #5f7186;
+  --accent: var(--rb);
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.2 "Segoe UI", system-ui, sans-serif;
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+#stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(120% 80% at 50% 42%, #0d1421 0%, var(--bg) 70%);
+}
+
+/* ---------- standby ---------- */
+#standby { text-align: center; }
+#standby h2 { font-size: 64px; margin: 0 0 10px; letter-spacing: .02em; }
+#standby p { color: var(--dim); font-size: 26px; margin: 0; }
+#standby .next { color: var(--gold); font-size: 30px; margin-top: 24px; }
+
+/* ---------- the sting ---------- */
+#sting {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(100deg, #0b1220 0%, #16233d 50%, #0b1220 100%);
+  opacity: 0;
+  pointer-events: none;
+}
+#sting .no {
+  font-size: 120px;
+  font-weight: 800;
+  letter-spacing: .01em;
+  color: var(--gold);
+  text-shadow: 0 0 40px rgba(255, 212, 94, .25);
+}
+#sting.run { animation: stingIn var(--sting) ease-out forwards; }
+@keyframes stingIn {
+  0% { opacity: 0; transform: scale(1.06); }
+  25% { opacity: 1; transform: scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ---------- the card ---------- */
+#card {
+  position: relative;
+  width: min(1240px, 88vw);
+  display: grid;
+  grid-template-columns: 460px 1fr;
+  gap: 64px;
+  align-items: center;
+  opacity: 0;
+  transform: translateY(28px);
+}
+#card.in { animation: cardIn var(--cardin) cubic-bezier(.2, .8, .2, 1) forwards; }
+#card.out { animation: cardOut var(--cardout) ease-in forwards; }
+@keyframes cardIn { to { opacity: 1; transform: none; } }
+@keyframes cardOut { to { opacity: 0; transform: translateY(-20px); } }
+
+/* The image box is a fixed size with the fallback painted behind it, so a
+   headshot that never loads cannot move a single pixel of the layout. */
+.shot {
+  position: relative;
+  width: 460px;
+  height: 460px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #121826;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .06);
+}
+.shot .fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 150px;
+  font-weight: 800;
+  color: #26314a;
+  letter-spacing: .04em;
+}
+.shot img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+.shot img.ready { opacity: 1; }
+
+.who .meta {
+  font-size: 30px;
+  color: var(--dim);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.who .first { font-size: 52px; font-weight: 500; color: var(--dim); line-height: 1.05; }
+.who .last {
+  font-size: 112px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -.01em;
+  margin: 2px 0 18px;
+}
+.who .last .sfx { font-size: 52px; font-weight: 600; color: var(--dim); }
+.who .row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.pill {
+  font-size: 34px;
+  font-weight: 800;
+  padding: 6px 20px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #08111a;
+}
+.who .team { font-size: 34px; font-weight: 600; }
+.who .adp { font-size: 26px; color: var(--dim); }
+.who .to {
+  margin-top: 26px;
+  font-size: 38px;
+  font-weight: 600;
+}
+.who .to b { color: var(--gold); font-weight: 800; }
+.who .mgr { font-size: 26px; color: var(--dim); margin-top: 4px; }
+
+/* ---------- time remaining ---------- */
+#bar { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: rgba(255, 255, 255, .06); }
+#bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+
+/* ---------- catch-up strip ---------- */
+#catchup {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 26px 40px;
+  background: #101828;
+  border-top: 3px solid var(--gold);
+  display: none;
+}
+#catchup.show { display: block; }
+#catchup h3 { margin: 0 0 8px; font-size: 26px; color: var(--gold); letter-spacing: .06em; text-transform: uppercase; }
+#catchup .list { font-size: 30px; line-height: 1.35; }
+#catchup .list span { color: var(--dim); }
+
+/* ---------- corner slate ---------- */
+#slate {
+  position: absolute;
+  top: 28px;
+  left: 34px;
+  font-size: 24px;
+  color: var(--dim);
+  letter-spacing: .06em;
+}
+#queue {
+  position: absolute;
+  top: 28px;
+  right: 34px;
+  font-size: 20px;
+  color: #46516a;
+}
+
+/* ---------- arm audio ---------- */
+#arm {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(7, 9, 15, .97);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  text-align: center;
+}
+#arm.hidden { display: none; }
+#arm h2 { font-size: 52px; margin: 0 0 12px; }
+#arm p { color: var(--dim); font-size: 26px; margin: 0; }
+
+#down {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 10px 22px;
+  background: #6b1414;
+  color: #ffd4d4;
+  font-size: 22px;
+  font-weight: 600;
+  display: none;
+  z-index: 40;
+}
+#down.show { display: block; }
