@@ -61,6 +61,7 @@ const log = (...a) => console.log(ts(), ...a);
 const bus = createBus({ onError: (e, ev) => log("bus handler failed on", ev + ":", e.message) });
 
 let league = placeholderLeague({ leagueId: 0, teams: 12, rounds: 16, name: "starting up" });
+let restored = null;
 let players = null;
 let reconciler = null;
 let source = null;
@@ -75,6 +76,32 @@ state.apply((s) => {
   s.source = SOURCE;
   s.simulated = SOURCE !== "live";
 });
+
+if (!has("fresh")) {
+  const saved = state.restore();
+  if (saved?.picks?.length) {
+    restored = {
+      season: saved.season,
+      leagueId: saved.leagueId,
+      teamCount: saved.draft.teamCount,
+      rounds: saved.draft.rounds,
+      order: saved.draft.order,
+      picks: saved.picks,
+      counters: saved.counters,
+      orderSource: "restored",
+    };
+    state.apply((s) => {
+      s.leagueId = saved.leagueId;
+      s.leagueName = saved.leagueName;
+      s.draft = saved.draft;
+      s.picks = saved.picks;
+      s.gaps = saved.gaps ?? [];
+      s.counters = saved.counters;
+      s.phase = saved.phase === "complete" ? "complete" : "pre";
+    });
+    log("restored " + saved.picks.length + " picks from the last run");
+  }
+}
 
 const sse = createSse({ state });
 const showConfig = readJsonSync("data/show.config.json", {}) ?? {};
@@ -358,6 +385,11 @@ const handleFrame = createFrameHandler({
       if (s.phase === "boot") s.phase = "pre";
     });
     startReconciler(room);
+    if (restored && restored.leagueId === room.leagueId && restored.picks.length) {
+      reconciler.restore(restored);
+      log("carried " + restored.picks.length + " picks across the restart");
+      restored = null;
+    }
   },
   onSelecting: ({ teamId, clockMs }) => {
     state.touch((s) => (s.onClock = { teamId, msLeft: clockMs, at: Date.now() }));
