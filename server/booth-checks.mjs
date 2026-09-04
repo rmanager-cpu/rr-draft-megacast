@@ -11,6 +11,8 @@
 // open, and they are the reason a wrong line costs a fallback rather than a
 // retraction.
 
+const TRAILING_DOT = new RegExp(String.fromCharCode(92) + ".$");
+
 const NUMBER_WORDS = {
   zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8,
   nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
@@ -61,6 +63,24 @@ export function checkLine(text, packet = {}) {
   const allowedNumbers = new Set((packet.numbers ?? []).map(Number).filter((n) => Number.isFinite(n)));
   // Round and pick numbers are always fair game if the packet named them.
   for (const n of [packet.round, packet.pick, packet.slotInRound]) if (Number.isFinite(n)) allowedNumbers.add(Number(n));
+  // So is anything the note itself states: it is packet content, not invention.
+  const noteText = String(packet.notes ?? "");
+  // Scanned character by character rather than with a pattern: escape sequences
+  // do not survive being edited through a shell, and a silently broken pattern
+  // here would quietly forbid every fact the note actually states.
+  let run = "";
+  for (const ch of noteText + " ") {
+    const isDigit = ch >= "0" && ch <= "9";
+    if (isDigit || (run && (ch === "." || ch === ","))) {
+      run += ch;
+      continue;
+    }
+    if (run) {
+      const n = Number(run.split(",").join("").replace(TRAILING_DOT, ""));
+      if (Number.isFinite(n)) allowedNumbers.add(n);
+      run = "";
+    }
+  }
 
   for (const m of line.matchAll(/\b\d+(?:\.\d+)?\b/g)) {
     const n = Number(m[0]);
@@ -77,7 +97,7 @@ export function checkLine(text, packet = {}) {
   }
 
   const whitelist = new Set(
-    (packet.names ?? [])
+    [...(packet.names ?? []), ...noteText.split(/[^A-Za-z'’-]+/)]
       .flatMap((n) => String(n).split(/[\s.'-]+/))
       .map((w) => w.toLowerCase())
       .filter(Boolean),

@@ -72,3 +72,23 @@ test("ordinary sentences are not mistaken for names", () => {
   const r = checkLine("There it is. Jefferson to Dave Hoffman. Nobody is surprised.", packet);
   assert.equal(r.ok, true, r.problems.join("; "));
 });
+
+test("what the note says, the booth may say - numbers and names included", () => {
+  const withNote = {
+    ...packet,
+    notes:
+      "Evans signed with the 49ers after spending his first 12 NFL seasons with the Buccaneers. " +
+      "That streak ended when he missed nine games due to injury last season.",
+  };
+  // Straight out of the note: a club it never otherwise knew, and a count.
+  assert.equal(checkLine("He spent 12 seasons with the Buccaneers.", withNote).ok, true);
+  assert.equal(checkLine("He signed with the 49ers.", withNote).ok, true);
+  // Still refused: a number the note never gave it.
+  assert.equal(checkLine("He had 1809 yards.", withNote).ok, false);
+});
+
+test("a note about one player does not license invention about another", () => {
+  const withNote = { ...packet, notes: "Kelce re-signed with the Chiefs." };
+  assert.equal(checkLine("Kelce re-signed with the Chiefs.", withNote).ok, true);
+  assert.equal(checkLine("Jefferson re-signed with the Raiders.", withNote).ok, false);
+});
