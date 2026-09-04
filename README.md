@@ -1,7 +1,7 @@
 # River Ranch Fantasy Draft Megacast
 
 Three screens, one speaker, one laptop, and nobody touching anything after Launch.
-`docs/BUILD-GUIDE.md` is the spec. `docs/SPIKE-RESULTS.md` is what the wire actually does.
+`docs/ENGINE.md` explains how it works. `docs/BUILD-GUIDE.md` is the spec. `docs/SPIKE-RESULTS.md` is what the wire actually does.
 
 ## Run it
 
@@ -13,6 +13,7 @@ npm run replay:fast                        the same, in about twenty seconds
 npm run replay:step                        one pick at a time, for building things
 npm run synth                              an invented 12-team, 16-round draft
 npm run soak                               two hours, both TVs, unattended
+npm run probe -- <leagueId>                can we read that league? (safe on the real one)
 ```
 
 Then open, on the show computer:

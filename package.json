@@ -18,7 +18,8 @@
     "watch": "node server/watch.mjs",
     "spike:poll": "node scripts/spike-poll.mjs",
     "spike:room": "node scripts/spike-room.mjs",
-    "spike:replay": "node scripts/spike-replay.mjs"
+    "spike:replay": "node scripts/spike-replay.mjs",
+    "probe": "node scripts/probe.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.55.0"
