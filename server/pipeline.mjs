@@ -11,6 +11,7 @@ import { decodeInit } from "./initdecode.mjs";
 export function createFrameHandler({
   getReconciler,
   leagueId,
+  isPreDraft = () => false,
   onClock = () => {},
   onSelecting = () => {},
   onState = () => {},
@@ -29,8 +30,10 @@ export function createFrameHandler({
           onWarn("could not read the room snapshot: " + res.reason);
           return;
         }
-        // The first snapshot, before any pick, is where keepers live.
-        const phase = sawFirstInit ? "live" : "pre";
+        // Pre-filled picks are keepers only if the draft has not started. Join
+        // a draft already in progress and those same records are simply picks we
+        // were not there to see - calling them keepers would be a lie on screen.
+        const phase = !sawFirstInit && isPreDraft() ? "pre" : "live";
         sawFirstInit = true;
         onRoomSnapshot(res);
         getReconciler()?.adoptInit(res.records, { phase });

@@ -11,3 +11,11 @@ Thumbs.db
 
 # spike artifacts: league snapshots, WS frames, the logged-in Chrome profile
 spike/
+
+# runtime state and caches: regenerated on demand, never the source of truth
+data/players.json
+data/league.json
+data/state.json
+data/picks.jsonl
+data/headshots/
+data/audio/cache/
