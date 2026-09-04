@@ -43,17 +43,33 @@ git checkout build/show-server
 npm install
 ```
 
-Then copy your `.env` across by hand. It holds the ESPN cookies and the API keys, it is
-deliberately not in the repository, and it must never go in one. If it is easier to retype
-it than to move it, `.env.example` lists the four required values.
+Then give it an `.env`. Nothing secret has to travel: copy `.env.example` and set just
+the league id, because the sign-in below captures the cookies on this machine.
+
+```
+ESPN_LEAGUE_ID=36784699
+ESPN_SEASON=2026
+```
+
+Sign the show in as its own account, not the one you draft with:
+
+```
+npm run login -- --fresh
+```
+
+That opens a separate Chrome profile, so it cannot sign you out of your normal browser.
+It writes the cookies it sees and then tells you whose they are and which team they can
+see, because capturing the wrong account is easy and silent.
 
 ```
 npm run setup
 ```
 
-That caches the player table and four hundred headshots so the studio works with the cable
-out, then prints what is still missing: the API keys, the lore file, the clips. It is safe
-to run as often as you like.
+That caches the player table and four hundred headshots so the studio works with the
+cable out, then prints what is still missing: the two API keys, the lore file, the clips.
+Safe to run as often as you like.
+
+The API keys are the only thing you still add by hand, into the same `.env`.
 
 Confirm the machine is good:
 
