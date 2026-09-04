@@ -19,7 +19,8 @@
 // blob the ten filled records are exactly round 1, and they do not overlap the
 // 150 picks that later arrived as SELECTED frames. 10 + 150 = 160.
 //
-// Offsets are DISCOVERED, never hardcoded. If anything looks off we return
+// Offsets are DISCOVERED, never hardcoded, and a candidate that does not survive
+// validation is abandoned for the next one. If nothing validates we return
 // { ok: false } and the caller falls back. A wrong board is worse than no board.
 
 const TAG = 3;
@@ -50,21 +51,25 @@ export function decodeInit(bytes, { leagueId } = {}) {
   const i32 = (o) => bytes.readInt32BE(o);
   const fits = (o) => o >= 0 && o + MIN_FIELDS <= bytes.length;
 
-  // Find record 1: the tag, a plausible league id, and pick number 1.
-  let first = -1;
-  let league = 0;
+  let lastReason = "no record with pick 1";
   for (let o = 0; fits(o); o++) {
     if (i32(o) !== TAG || i32(o + 12) !== 1) continue;
     const lid = i32(o + 4);
     if (lid <= 0) continue;
     if (leagueId && lid !== Number(leagueId)) continue;
-    first = o;
-    league = lid;
-    break;
+    const attempt = readFrom(bytes, o, lid);
+    if (attempt.ok) return attempt;
+    lastReason = attempt.reason;
   }
-  if (first < 0) return fail("no record with pick 1");
+  return fail(lastReason);
+}
 
-  // Find record 2 to learn the stride, rather than assuming one.
+/** Try to read the record array starting at `first`. Validates before believing it. */
+function readFrom(bytes, first, league) {
+  const i32 = (o) => bytes.readInt32BE(o);
+  const fits = (o) => o >= 0 && o + MIN_FIELDS <= bytes.length;
+
+  // Record 2 gives us the stride, rather than assuming one.
   let second = -1;
   for (let o = first + 8; fits(o); o++) {
     if (i32(o) === TAG && i32(o + 4) === league && i32(o + 12) === 2) {
@@ -76,7 +81,6 @@ export function decodeInit(bytes, { leagueId } = {}) {
   const stride = second - first;
   if (stride < MIN_FIELDS || stride > 512) return fail("implausible stride " + stride);
 
-  // Walk while the tag, league and pick sequence all hold.
   const records = [];
   for (let k = 0; ; k++) {
     const o = first + k * stride;
@@ -92,14 +96,13 @@ export function decodeInit(bytes, { leagueId } = {}) {
   }
   if (records.length < 2) return fail("record array did not continue");
 
-  const teamIds = new Set(records.map((r) => r.teamId));
-  const teams = teamIds.size;
+  const teams = new Set(records.map((r) => r.teamId)).size;
   if (teams < 2) return fail("only " + teams + " distinct team");
   if (records.length % teams !== 0) return fail(records.length + " records is not a multiple of " + teams + " teams");
   const rounds = records.length / teams;
 
-  // Every team must own exactly one pick per round. This is the check that
-  // catches a misread stride that still happens to walk cleanly.
+  // Every team owns exactly one pick per round. This is the check that catches a
+  // misread stride which still happens to walk cleanly.
   for (let r = 0; r < rounds; r++) {
     const row = records.slice(r * teams, (r + 1) * teams);
     if (new Set(row.map((x) => x.teamId)).size !== teams) return fail("round " + (r + 1) + " does not use each team once");
@@ -117,4 +120,28 @@ export function orderFromRecords(records) {
   const order = new Int32Array(records.length + 1);
   for (const r of records) order[r.pick] = r.teamId;
   return order;
+}
+
+/**
+ * Build an INIT payload from records. Used by the replay and synthetic sources so
+ * they hand the reconciler real bytes down the real code path, and by tests.
+ * The leading header is arbitrary padding: decodeInit discovers the array.
+ */
+export function encodeInitRecords(records, leagueId, { headerBytes = 64, stride = 45 } = {}) {
+  const buf = Buffer.alloc(headerBytes + records.length * stride);
+  records.forEach((r, k) => {
+    const o = headerBytes + k * stride;
+    buf.writeInt32BE(3, o);
+    buf.writeInt32BE(Number(leagueId), o + 4);
+    buf.writeInt32BE(r.teamId, o + 8);
+    buf.writeInt32BE(r.pick, o + 12);
+    buf.writeInt32BE(r.playerId === null || r.playerId === undefined ? -1 : r.playerId, o + 16);
+    buf.writeInt32BE(r.slot ?? 0, o + 20);
+  });
+  return buf;
+}
+
+/** The wire form: base64 payload, a space, then the filler chunk ESPN appends. */
+export function encodeInitFrameArgs(records, leagueId, opts) {
+  return encodeInitRecords(records, leagueId, opts).toString("base64") + " " + "#".repeat(2048);
 }
