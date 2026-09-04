@@ -55,6 +55,18 @@ async function main() {
   say("order", league.pickOrder.length ? "set" : "not set yet");
   say("status", "drafted=" + league.drafted + "   in progress=" + league.inProgress);
 
+  // The show needs its own ESPN member, because the room allows one connection
+  // each and two on the same account evict one another. A team that already has
+  // two owners proves co-managers are available in this league.
+  const withCo = league.teams.filter((t) => (t.owners || []).length > 1);
+  const owners = league.teams.map((t) => (t.owners || []).length);
+  say("co-managers", withCo.length
+    ? withCo.length + " team(s) already have one, so the league allows it"
+    : "none in use yet (" + owners.filter((n) => n === 1).length + " teams with a single owner)");
+  if (withCo.length) {
+    for (const t of withCo) say("", "  " + t.name + ": " + t.owners.length + " owners");
+  }
+
   const mine = league.teams.find((t) => (t.owners || []).includes(env.ESPN_SWID));
   if (!mine) {
     console.log("");
