@@ -8,6 +8,7 @@
 // if ESPN is slow at a quarter to seven the operator sees on /status exactly what
 // is being waited on, instead of a blank window.
 
+import { readFileSync } from "node:fs";
 import { loadEnv } from "../scripts/env.mjs";
 import { createBus } from "./bus.mjs";
 import { createHttp } from "./http.mjs";
@@ -23,6 +24,10 @@ import { createReveal } from "./reveal.mjs";
 import { createHeadshots } from "./headshots.mjs";
 import { readJsonSync } from "./persist.mjs";
 import { createLaunch, registerCoreChecks } from "./launch.mjs";
+import { createAudio, KIND } from "./audio.mjs";
+import { createBooth } from "./booth.mjs";
+import { createWriter } from "./booth-writer.mjs";
+import { createVoice } from "./booth-voice.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {
@@ -39,6 +44,14 @@ const PORT = Number(flag("port", 7788));
 const HOST = String(flag("host", "127.0.0.1"));
 const SOURCE = String(flag("source", "replay"));
 const SPEED = Number(flag("speed", 1));
+
+function readTextOr(path, fallback) {
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return fallback;
+  }
+}
 
 const ts = () => new Date().toISOString().slice(11, 23);
 const log = (...a) => console.log(ts(), ...a);
@@ -64,6 +77,40 @@ state.apply((s) => {
 const sse = createSse({ state });
 const showConfig = readJsonSync("data/show.config.json", {}) ?? {};
 const launch = createLaunch({ state, sse, onInfo: log });
+
+// One speaker. Nothing overlaps, a recap is never interrupted, and a browser
+// that never reports back cannot leave the channel wedged for the rest of the
+// draft - every line has a deadline after which the channel frees itself.
+const audio = createAudio({
+  onPlay: (item) => {
+    log("say [" + item.kind + "] " + String(item.text).slice(0, 90));
+    sse.send("say", { id: item.id, kind: item.kind, text: item.text, audioUrl: item.audioUrl });
+  },
+  onDropped: (item) => log("dropped [" + item.kind + "] " + item.reason),
+});
+
+const writer = createWriter({
+  apiKey: env.ANTHROPIC_API_KEY,
+  bible: readTextOr("data/bible.md", ""),
+  onWarn: (w) => { log("warn:", w); state.warn(w); },
+  onInfo: log,
+});
+const voice = createVoice({
+  apiKey: env.ELEVENLABS_API_KEY,
+  voices: Object.fromEntries(Object.entries(showConfig.voices ?? {}).filter(([k, v]) => k !== "_" && v)),
+  onWarn: (w) => log("warn:", w),
+});
+const playerNotes = readJsonSync("data/player-notes.json", {}) ?? {};
+const booth = createBooth({
+  audio,
+  writer,
+  voice,
+  config: showConfig,
+  getLeague: () => league,
+  notesFor: (id) => playerNotes[String(id)] ?? "",
+  onWarn: (w) => { log("booth:", w); state.warn(w); },
+  onInfo: log,
+});
 const headshots = createHeadshots({ onWarn: (w) => log("headshots:", w) });
 
 // TV 2. The server owns the queue and the clock; the browser just plays what it
@@ -176,9 +223,92 @@ function startReconciler(room) {
       // them one by one would put the studio minutes behind the room.
       if (catchup && list.length > 1) reveal.enqueueCatchup(list.map(cardFor));
       else for (const p of list) reveal.enqueue(cardFor(p));
+
+      // The speaker follows the board, and never the other way round.
+      if (!catchup) {
+        for (const p of list) {
+          const card = cardFor(p);
+          booth.callPick(card).catch((e) => log("booth call:", e.message));
+          maybeInterject(card);
+        }
+      }
+      checkRoundBoundary();
       if (reconciler.complete) finish();
     },
   });
+}
+
+// ------------------------------------------------------------- booth schedule
+//
+// Quiet during picks, talking at the round boundaries. The recap is the show, so
+// it is never interrupted and it is allowed to take its time; a pick landing
+// mid-recap still reveals on the TVs with its call suppressed, and the next
+// recap covers it.
+
+const recapRounds = new Set(showConfig.recapAfterRounds ?? [1, 2, 4, 6, 8, 10, 12, 14, 16]);
+const recapped = new Set();
+const interjectedThisRound = new Map();
+let lastInterjectAt = 0;
+
+function checkRoundBoundary() {
+  if (!reconciler) return;
+  const snap = reconciler.snapshot();
+  const perRound = snap.teamCount;
+  if (!perRound) return;
+  const done = snap.picks.length;
+  const completeRounds = Math.floor(done / perRound);
+  for (let r = 1; r <= completeRounds; r++) {
+    if (recapped.has(r) || !recapRounds.has(r)) continue;
+    // Only recap a round we have every pick for; a gap means wait for the heal.
+    const picks = snap.picks.filter((p) => p.round === r);
+    if (picks.length !== perRound) continue;
+    recapped.add(r);
+    const isFinal = completeRounds === snap.rounds && r === snap.rounds;
+    const seconds = r <= 2 ? showConfig.recapSeconds?.early ?? 70 : showConfig.recapSeconds?.later ?? 100;
+    log("booth: recap after round " + r + (isFinal ? " (final)" : ""));
+    booth
+      .recap({ picks: picks.map(cardFor), round: r, isFinal, seconds })
+      .catch((e) => log("booth recap:", e.message));
+  }
+}
+
+/** A live reaction, capped per round and on a cooldown, dropped if it is late. */
+function maybeInterject(card) {
+  const cfg = showConfig.interjections ?? {};
+  const max = cfg.maxPerRound ?? 2;
+  const cooldown = (cfg.cooldownSeconds ?? 90) * 1000;
+  const used = interjectedThisRound.get(card.round) ?? 0;
+  if (used >= max) return;
+  if (Date.now() - lastInterjectAt < cooldown) return;
+  if (audio.talkingOver) return;
+
+  const context = runContext(card);
+  const gap = card.adp ? card.adp - card.pick : 0;
+  const worth = Math.abs(gap) >= 12 || context.runLength >= 3 || ((card.pos === "K" || card.pos === "D/ST") && card.round <= 12);
+  if (!worth) return;
+
+  interjectedThisRound.set(card.round, used + 1);
+  lastInterjectAt = Date.now();
+  booth.interject(card, context).then(
+    (r) => {
+      if (!r?.queued) log("interjection dropped: " + (r?.reason ?? "unknown"));
+    },
+    (e) => log("booth interject:", e.message),
+  );
+}
+
+/** How many of the last few picks were the same position. */
+function runContext(card) {
+  const snap = reconciler?.snapshot();
+  if (!snap) return { runLength: 0 };
+  const recent = snap.picks.slice(-6, -1).map(cardFor);
+  let runLength = 1;
+  for (let i = recent.length - 1; i >= 0; i--) {
+    if (recent[i].pos !== card.pos) break;
+    runLength++;
+  }
+  const firstOfPosition = !snap.picks.slice(0, -1).map(cardFor).some((c) => c.pos === card.pos);
+  return { runLength, firstOfPosition };
 }
 
 function finish() {
@@ -186,6 +316,13 @@ function finish() {
   state.apply((s) => (s.phase = "complete"));
   sse.send("status", { phase: "complete", version: state.version });
   bus.emit("complete", {});
+
+  const snap = reconciler?.snapshot();
+  if (!snap || !snap.picks.length) return;
+  log("booth: final recap");
+  booth
+    .recap({ picks: snap.picks.slice(-snap.teamCount).map(cardFor), round: snap.rounds, isFinal: true, seconds: 120 })
+    .catch((e) => log("booth final:", e.message));
 }
 
 const handleFrame = createFrameHandler({
@@ -256,6 +393,11 @@ const routes = {
     sse.attach(req, res, { display: url.searchParams.get("display") ?? "ops", hello });
   },
   "GET /img/headshot/:id": (ctx) => headshots.serve(ctx),
+  "GET /audio/:name": ({ res, params }) => serveStatic(res, "../data/audio/cache/" + params.name),
+  "POST /api/audio-done": ({ body, json }) => {
+    audio.done(String(body.id ?? ""));
+    return json(200, { ok: true });
+  },
   "GET /api/checks": async ({ json }) => json(200, await launch.evaluate()),
   "POST /api/launch": async ({ body, json }) => {
     const gate = await launch.evaluate();
@@ -339,7 +481,7 @@ const routes = {
   },
 };
 
-const { server } = createHttp({ routes, onError: (e) => log("http:", e.message) });
+const { server, serveStatic } = createHttp({ routes, onError: (e) => log("http:", e.message) });
 
 // ---------------------------------------------------------------------- boot
 

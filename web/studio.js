@@ -166,22 +166,60 @@ connect("studio", {
     clearTimeout(catchupTimer);
     catchupTimer = setTimeout(() => catchup.classList.remove("show"), d.ms || 2500);
   },
-  say: (d) => speak(d.text),
+  say: (d) => play(d),
   status: (d) => {
     if (d.version) version = d.version;
   },
   onConnection: (s) => down.classList.toggle("show", !s.connected),
 });
 
+// Rendered audio when the booth has it, the laptop's own voice when it does not.
+// Either way the server is told when the line finished, so it knows the speaker
+// is free. It does not depend on that message arriving - it has its own deadline
+// - but reporting honestly keeps the channel tight.
+let player = null;
+
+function play(d) {
+  const finish = () => done(d.id);
+  if (d.audioUrl) {
+    try {
+      player = new Audio(d.audioUrl);
+      player.onended = finish;
+      player.onerror = () => speak(d.text, finish);
+      player.play().catch(() => speak(d.text, finish));
+      return;
+    } catch {
+      // fall through to the system voice
+    }
+  }
+  speak(d.text, finish);
+}
+
+function done(id) {
+  if (!id) return;
+  fetch("/api/audio-done", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ id }),
+  }).catch(() => {});
+}
+
 /** The always-available voice. Real voices layer on top of this, never under it. */
-function speak(text) {
-  if (!text || !window.speechSynthesis) return;
+function speak(text, onEnd) {
+  if (!text || !window.speechSynthesis) {
+    onEnd?.();
+    return;
+  }
   try {
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 1.02;
     u.pitch = 0.95;
+    u.onend = () => onEnd?.();
+    u.onerror = () => onEnd?.();
     window.speechSynthesis.speak(u);
-  } catch {}
+  } catch {
+    onEnd?.();
+  }
 }
 
 // Chrome will not play audio in a tab that has never been clicked. This is the
