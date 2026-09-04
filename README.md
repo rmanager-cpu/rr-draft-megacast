@@ -30,6 +30,44 @@ Then open, on the show computer:
 Everything binds to `127.0.0.1`. The TVs are Chrome windows on this laptop, not devices on
 the venue network, so the venue Wi-Fi dropping cannot touch them.
 
+## Moving it to another machine
+
+The show computer needs Node 22 or newer, Chrome, and git. Everything else comes down
+with the repository, including the show config, the bible, the lore, the player notes and
+the highlight catalogue.
+
+```
+git clone https://github.com/rmanager-cpu/rr-draft-megacast.git
+cd rr-draft-megacast
+git checkout build/show-server
+npm install
+```
+
+Then copy your `.env` across by hand. It holds the ESPN cookies and the API keys, it is
+deliberately not in the repository, and it must never go in one. If it is easier to retype
+it than to move it, `.env.example` lists the four required values.
+
+```
+npm run setup
+```
+
+That caches the player table and four hundred headshots so the studio works with the cable
+out, then prints what is still missing: the API keys, the lore file, the clips. It is safe
+to run as often as you like.
+
+Confirm the machine is good:
+
+```
+npm test
+npm run replay:fast
+```
+
+Two things deliberately do **not** travel. `spike/` holds the original capture and a
+logged-in Chrome profile, and the client half of that capture carries session tokens, so
+it stays where it is; the tests use scrubbed fixtures that are in the repository. And the
+caches under `data/` are rebuilt by `npm run setup` rather than copied, which is both
+faster and less to get wrong.
+
 ## Rehearsing on a real draft
 
 ESPN lets you run a practice draft inside the home league, and that is the rehearsal
