@@ -41,6 +41,9 @@ await new Promise((r) => setTimeout(r, 4000));
 
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 const pageErrors = [];
+// Record WHICH request failed, not just that one did. The first long run
+// reported page errors with no way to tell what they were about.
+const requestFailures = new Map();
 for (const [path, name] of [
   ["/board", "board"],
   ["/studio", "studio"],
@@ -48,6 +51,10 @@ for (const [path, name] of [
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   page.on("pageerror", (e) => pageErrors.push(name + ": " + e.message));
   page.on("console", (m) => m.type() === "error" && !/favicon|youtube|ytimg|googleads|doubleclick|gstatic/i.test(m.text()) && pageErrors.push(name + ": " + m.text()));
+  page.on("requestfailed", (r) => {
+    const key = name + "  " + r.url().replace(base, "").split("?")[0] + "  ::  " + (r.failure()?.errorText ?? "?");
+    requestFailures.set(key, (requestFailures.get(key) ?? 0) + 1);
+  });
   await page.goto(base + path, { waitUntil: "domcontentloaded" });
   if (name === "studio") await page.click("#arm").catch(() => {});
 }
@@ -126,6 +133,19 @@ if (/unhandled rejection|uncaught exception/i.test(serverLog)) problems.push("th
 
 console.log("");
 console.log(`picks ${state?.picks.length ?? "?"} · gaps ${state?.gaps.length ?? "?"} · memory ${baselineRss}MB to ${peakRss}MB · ran ${Math.round((Date.now() - started) / 60000)} min`);
+if (requestFailures.size) {
+  console.log("");
+  console.log("failed requests, by kind:");
+  for (const [k, n] of [...requestFailures].sort((a, b) => b[1] - a[1])) console.log("  " + String(n).padStart(5) + " x  " + k);
+}
+const draftClean =
+  state &&
+  state.phase === "complete" &&
+  !state.gaps.length &&
+  !state.counters.suspects &&
+  state.picks.length === state.league.teams.length * state.league.rounds;
+console.log("");
+console.log("the draft itself: " + (draftClean ? "clean" : "NOT clean"));
 if (problems.length) {
   console.error("SOAK FAILED:\n - " + problems.join("\n - "));
   process.exit(1);
