@@ -76,6 +76,7 @@ const launched = await fetch(base + "/api/launch", {
 note("launched: " + JSON.stringify(launched.ok));
 
 let baselineRss = 0;
+let samples = 0;
 let peakRss = 0;
 let lastPicks = -1;
 let stalledFor = 0;
@@ -90,7 +91,12 @@ while (Date.now() - started < maxMinutes * 60000) {
     problems.push("health check failed: " + e.message);
     break;
   }
-  if (!baselineRss) baselineRss = health.rssMb;
+  // Take the baseline once it has settled, not during boot. Loading the player
+  // table spikes memory to about a hundred megabytes and then it falls back to
+  // the thirties, so a baseline caught at startup hides real growth behind it.
+  samples++;
+  if (!baselineRss && samples >= 4) baselineRss = health.rssMb;
+  if (!baselineRss) continue;
   peakRss = Math.max(peakRss, health.rssMb);
 
   if (health.committed === lastPicks) {
