@@ -5,11 +5,30 @@
 // needs to work with the network unplugged, then reports on the things only a
 // person can supply.
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { loadEnv } from "./env.mjs";
 import { loadPlayers } from "../server/players.mjs";
 import { createHeadshots } from "../server/headshots.mjs";
-import { readJsonSync } from "../server/persist.mjs";
+import { readJsonSync, writeAtomicSync } from "../server/persist.mjs";
+import { untouched } from "./lore-template.mjs";
+
+/** Two complete sentences. A stop is only a stop before a space and a capital. */
+function trimNote(text) {
+  const clean = String(text).split(/s+/).join(" ").trim();
+  const parts = [];
+  let last = 0;
+  for (let i = 0; i < clean.length - 1; i++) {
+    if (!".!?".includes(clean[i])) continue;
+    if (clean[i + 1] !== " ") continue;
+    const after = clean[i + 2];
+    if (!after || after === after.toLowerCase()) continue;
+    parts.push(clean.slice(last, i + 1).trim());
+    last = i + 1;
+    if (parts.length >= 2) break;
+  }
+  if (parts.length < 2 && last < clean.length) parts.push(clean.slice(last).trim());
+  return parts.filter((x, k, all) => k < all.length - 1 || /[.!?]$/.test(x)).join(" ").trim();
+}
 
 const ok = (s) => console.log("  ok    " + s);
 const no = (s) => console.log("  TODO  " + s);
@@ -56,6 +75,20 @@ if (blocked) {
     onWarn: (m) => no(m),
   });
 
+  // The booth's only source of 2026 facts. These are ESPN's own pre-season
+  // write-ups, so they move as the season approaches - refresh before the draft
+  // rather than trusting a copy taken days earlier.
+  if (players.size > 5000) {
+    const notes = {};
+    for (const x of players.byAdp.slice(0, 300)) {
+      if (!x.outlook) continue;
+      const note = trimNote(x.outlook);
+      if (note.length >= 40) notes[String(x.id)] = note;
+    }
+    writeAtomicSync("data/player-notes.json", notes, { onWarn: () => {} });
+    ok(Object.keys(notes).length + " player notes from ESPN's 2026 write-ups");
+  }
+
   if (players.size > 5000) {
     const headshots = createHeadshots({ onWarn: () => {} });
     const wanted = players.byAdp.slice(0, 400).map((p) => ({ playerId: p.id, proTeam: p.proTeam }));
@@ -72,9 +105,15 @@ if (blocked) {
   env.ANTHROPIC_API_KEY ? ok("Anthropic key, so the booth writes its own lines") : no("ANTHROPIC_API_KEY in .env, or the booth reads written lines only");
   env.ELEVENLABS_API_KEY ? ok("ElevenLabs key, so the booth has real voices") : no("ELEVENLABS_API_KEY in .env, or the booth uses this laptop's own voice");
 
-  const lore = existsSync("data/lore.md") ? (await import("node:fs")).readFileSync("data/lore.md", "utf8") : "";
-  const written = lore.split(/\s+/).filter((w) => w && !w.startsWith("<!--")).length;
-  written > 400 ? ok("data/lore.md has been written") : no("data/lore.md is still the template. The booth is only as good as this file.");
+  // Exactly the test the generator uses, so the two can never disagree about
+  // whether the owner has written anything. A word count could not tell the
+  // template's own instructions apart from real writing.
+  const loreText = existsSync("data/lore.md") ? readFileSync("data/lore.md", "utf8") : "";
+  if (!loreText || untouched(loreText)) {
+    no("data/lore.md is still the template. The booth is only as good as this file.");
+  } else {
+    ok("data/lore.md has been written");
+  }
 
   const clips = Object.values(readJsonSync("data/highlights.json", {}) ?? {}).filter((c) => c && c.videoId);
   const verified = clips.filter((c) => c.verifiedAt).length;

@@ -24,11 +24,11 @@ const leagueId = process.argv.find((a) => /^\d+$/.test(a)) || env.ESPN_LEAGUE_ID
 // and losing that would be the worst thing this repository could do to them.
 const STAMP = "<!-- generated-template ";
 
-function fingerprint(body) {
+export function fingerprint(body) {
   return createHash("sha1").update(body.split(CR + LF).join(LF).trim()).digest("hex").slice(0, 16);
 }
 
-function untouched(text) {
+export function untouched(text) {
   const lines = text.split(CR + LF).join(LF).split(LF);
   const i = lines.findIndex((l) => l.startsWith(STAMP));
   if (i < 0) return false;
@@ -37,13 +37,14 @@ function untouched(text) {
   return stamped === fingerprint(body);
 }
 
+const runningDirectly = process.argv[1] && process.argv[1].endsWith("lore-template.mjs");
 const force = process.argv.includes("--force");
-if (existsSync(OUT) && !force && !untouched(readFileSync(OUT, "utf8"))) {
+if (runningDirectly && existsSync(OUT) && !force && !untouched(readFileSync(OUT, "utf8"))) {
   console.error("data/lore.md has writing in it. Not touching it.");
   console.error("Pass --force if you really want to replace it.");
   process.exitCode = 1;
 }
-if (!process.exitCode) {
+if (runningDirectly && !process.exitCode) {
   const league = await fetchLeague({
     season: Number(env.ESPN_SEASON || 2026),
     leagueId,
