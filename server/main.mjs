@@ -542,7 +542,12 @@ const routes = {
   // highlight is megabytes and there is no reason for it to pass through memory.
   "RAW POST /api/clip/:playerId": ({ req, res, params, json }) => {
     const playerId = Number(params.playerId);
-    const name = String(req.headers["x-filename"] ?? "clip.mp4");
+    // Percent-encoded by the browser, because a header cannot carry anything
+    // outside Latin-1 and filenames routinely do.
+    let name = String(req.headers["x-filename"] ?? "clip.mp4");
+    try {
+      name = decodeURIComponent(name);
+    } catch {}
     if (!playerId || !isVideoName(name)) return json(400, { ok: false, reason: "not a video file" });
     ensureDir(CLIP_DIR);
     const dest = join(CLIP_DIR, String(playerId) + extname(name).toLowerCase());

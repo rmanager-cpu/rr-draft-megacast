@@ -77,7 +77,7 @@ el("upload").addEventListener("click", async () => {
   el("msg").textContent = "saving " + Math.round(f.size / 1048576) + " MB...";
   const r = await fetch("/api/clip/" + rows[current].playerId, {
     method: "POST",
-    headers: { "x-filename": f.name, "content-type": "application/octet-stream" },
+    headers: { "x-filename": encodeURIComponent(f.name), "content-type": "application/octet-stream" },
     body: f,
   })
     .then((x) => x.json())
