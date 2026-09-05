@@ -5,31 +5,44 @@
 // It refuses to overwrite a lore file that has real writing in it. Losing that
 // would be the worst thing this repository could do to its owner.
 
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fetchLeague } from "../server/league.mjs";
 import { loadEnv } from "./env.mjs";
 
 const LF = String.fromCharCode(10);
+const CR = String.fromCharCode(13);
 const OUT = "data/lore.md";
 const env = loadEnv();
 const leagueId = process.argv.find((a) => /^\d+$/.test(a)) || env.ESPN_LEAGUE_ID;
 
-if (existsSync(OUT)) {
-  const existing = readFileSync(OUT, "utf8");
-  // Anything that is not a heading, a comment or blank counts as writing.
-  const written = existing
-    .split(/\r?\n/)
-    .filter((l) => l.trim() && !l.trim().startsWith("#") && !l.trim().startsWith("<!--") && !l.trim().startsWith("-") && !l.trim().startsWith("*") && !l.trim().startsWith("|"))
-    .join(" ")
-    .split(/\s+/)
-    .filter(Boolean).length;
-  if (written > 60) {
-    console.error("data/lore.md already has writing in it (" + written + " words). Not touching it.");
-    console.error("Move it aside first if you really want a fresh template.");
-    process.exitCode = 1;
-  }
+// Whether this file is still an untouched template is answered exactly rather
+// than by counting words: the template has instructional prose of its own, and
+// a word count mistook that for the owner's writing. The generated file carries
+// a fingerprint of itself. If the file still matches its fingerprint nobody has
+// touched it and it can be replaced. If it does not, somebody wrote something,
+// and losing that would be the worst thing this repository could do to them.
+const STAMP = "<!-- generated-template ";
+
+function fingerprint(body) {
+  return createHash("sha1").update(body.split(CR + LF).join(LF).trim()).digest("hex").slice(0, 16);
 }
 
+function untouched(text) {
+  const lines = text.split(CR + LF).join(LF).split(LF);
+  const i = lines.findIndex((l) => l.startsWith(STAMP));
+  if (i < 0) return false;
+  const stamped = lines[i].slice(STAMP.length).split("-->")[0].trim();
+  const body = lines.filter((_, k) => k !== i).join(LF);
+  return stamped === fingerprint(body);
+}
+
+const force = process.argv.includes("--force");
+if (existsSync(OUT) && !force && !untouched(readFileSync(OUT, "utf8"))) {
+  console.error("data/lore.md has writing in it. Not touching it.");
+  console.error("Pass --force if you really want to replace it.");
+  process.exitCode = 1;
+}
 if (!process.exitCode) {
   const league = await fetchLeague({
     season: Number(env.ESPN_SEASON || 2026),
@@ -115,6 +128,7 @@ if (!process.exitCode) {
     "",
   ];
 
-  writeFileSync(OUT, [...head, ...blocks, ...tail].join(LF));
+  const body = [...head, ...blocks, ...tail].join(LF);
+  writeFileSync(OUT, body + LF + STAMP + fingerprint(body) + " -->" + LF);
   console.log("wrote " + OUT + " with " + order.length + " managers, in draft order");
 }

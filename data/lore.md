@@ -159,3 +159,5 @@ brings up, and how the booth should lean on them.
 
 <!-- Any name the booth would get wrong, spelled the way it sounds.
      For example:  Bourgeois = BOOR-zhwah -->
+
+<!-- generated-template e63f8699a77e904c -->
