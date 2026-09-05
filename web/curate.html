@@ -15,6 +15,7 @@
 </style>
 <main>
   <h1>Curate</h1>
+  <p class="sub">Local video is what the show plays. Choose a file, set a start time, save. A YouTube link is only a fallback for players with no file.</p>
   <p class="sub" id="sub">Work down the list in draft order. Anyone without a clip gets the animated card, which is the design.</p>
 
   <div class="layout">
@@ -24,7 +25,11 @@
       <div class="card">
         <div class="who2" id="who">Pick a player on the left</div>
         <div class="row">
-          <input id="url" placeholder="paste the YouTube link" size="46" />
+          <input type="file" id="file" accept="video/*" />
+          <button id="upload">Save video</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <input id="url" placeholder="or a YouTube link, as a fallback" size="38" />
           <input id="start" placeholder="start (1:23)" size="10" />
           <input id="ceiling" placeholder="seconds" size="7" value="8" />
           <button id="test">Test</button>

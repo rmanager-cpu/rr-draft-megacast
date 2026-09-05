@@ -29,7 +29,8 @@ async function load() {
       pos.textContent = p.pos + " " + p.proTeam;
       const has = document.createElement("span");
       has.className = "has";
-      has.textContent = p.clip?.videoId ? (p.clip.verifiedAt ? "✓" : "•") : "";
+      has.textContent = p.local ? "●" : p.clip?.videoId ? (p.clip.verifiedAt ? "✓" : "•") : "";
+      if (p.local) has.title = "local video on disk";
       d.append(adp, nm, pos, has);
       d.addEventListener("click", () => select(i));
       return d;
@@ -61,6 +62,44 @@ function preview() {
 }
 
 el("test").addEventListener("click", preview);
+
+// The file goes to the server as raw bytes: no form encoding, no library, and
+// nothing large held in memory at either end.
+el("upload").addEventListener("click", async () => {
+  if (current === null) return;
+  const f = el("file").files[0];
+  if (!f) {
+    el("msg").className = "note err";
+    el("msg").textContent = "choose a video file first";
+    return;
+  }
+  el("msg").className = "note";
+  el("msg").textContent = "saving " + Math.round(f.size / 1048576) + " MB...";
+  const r = await fetch("/api/clip/" + rows[current].playerId, {
+    method: "POST",
+    headers: { "x-filename": f.name, "content-type": "application/octet-stream" },
+    body: f,
+  })
+    .then((x) => x.json())
+    .catch((e) => ({ ok: false, reason: String(e) }));
+  if (r.ok) {
+    await fetch("/api/catalog", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        playerId: rows[current].playerId,
+        localOnly: true,
+        url: el("url").value,
+        start: seconds(el("start").value),
+        ceilingMs: Math.max(2, Number(el("ceiling").value) || 8) * 1000,
+        title: rows[current].name,
+      }),
+    });
+  }
+  el("msg").className = r.ok ? "note good" : "note err";
+  el("msg").textContent = r.ok ? "saved " + Math.round(r.bytes / 1048576) + " MB to disk" : r.reason;
+  load();
+});
 
 el("save").addEventListener("click", async () => {
   if (current === null) return;

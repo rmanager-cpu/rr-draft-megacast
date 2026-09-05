@@ -62,10 +62,17 @@ export function createHttp({ webRoot = "web", routes = {}, onError = console.err
       if (path.startsWith("/web/")) return serveStatic(res, path.slice(5));
 
       for (const [pattern, handler] of Object.entries(routes)) {
-        const [method, route] = pattern.split(" ");
+        const parts = pattern.split(" ");
+        const raw = parts[0] === "RAW";
+        const method = raw ? parts[1] : parts[0];
+        const route = raw ? parts[2] : parts[1];
         if (req.method !== method) continue;
         const params = match(route, path);
         if (!params) continue;
+        // A route declared RAW gets the request stream instead of a parsed body,
+        // so a video file can be written straight to disk without being held in
+        // memory or squeezed through the JSON size cap.
+        if (raw) return await handler({ req, res, url, params, json: (c, o) => json(res, c, o) });
         const body = method === "POST" ? await readBody(req) : null;
         return await handler({ req, res, url, params, body, json: (c, o) => json(res, c, o), text: (c, t) => send(res, c, t) });
       }

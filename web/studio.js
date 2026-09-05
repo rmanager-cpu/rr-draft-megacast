@@ -153,6 +153,14 @@ function stopClip() {
   try {
     ytPlayer?.stopVideo?.();
   } catch {}
+  // A video element keeps decoding unless it is told to stop.
+  for (const v of clipBox.querySelectorAll("video")) {
+    try {
+      v.pause();
+      v.removeAttribute("src");
+      v.load();
+    } catch {}
+  }
 }
 
 // A pre-roll advert reports itself as PLAYING, so "playing" is not enough to put
@@ -211,7 +219,13 @@ function confirmRealVideo(player, startSec, ceilingMs) {
 }
 function playClip(content, card, ceilingMs) {
   stopClip();
-  if (!content || content.kind !== "video" || !ytReady || !window.YT?.Player) return;
+  if (!content) return;
+
+  // A file on this disk starts on the next frame. No player to load, no
+  // negotiation, no advert, nothing to wait for and nothing to go wrong.
+  if (content.kind === "file") return playFile(content, card, ceilingMs);
+
+  if (content.kind !== "video" || !ytReady || !window.YT?.Player) return;
 
   const mount = document.createElement("div");
   clipBox.replaceChildren(mount);
@@ -253,6 +267,43 @@ function playClip(content, card, ceilingMs) {
   } catch {
     stopClip();
   }
+}
+
+function playFile(content, card, ceilingMs) {
+  const v = document.createElement("video");
+  v.muted = true;
+  v.playsInline = true;
+  v.preload = "auto";
+  v.src = content.url;
+  clipBox.replaceChildren(v);
+  clipTag.textContent = card.lastName || card.name;
+
+  const show = () => {
+    clearTimeout(clipTimer);
+    clipBox.classList.add("live");
+    clipTag.classList.add("live");
+    const budget = Math.min(ceilingMs ?? 8000, Math.max(0, (current?.endsAt ?? 0) - serverNow()));
+    clipTimer = setTimeout(stopClip, Math.max(1200, budget));
+  };
+
+  // Only once frames are actually being drawn, same rule as the embed.
+  v.addEventListener("playing", show, { once: true });
+  v.addEventListener("error", stopClip, { once: true });
+
+  const start = content.startSec || 0;
+  const go = () => {
+    try {
+      if (start > 0 && Math.abs(v.currentTime - start) > 0.5) v.currentTime = start;
+      v.play().catch(stopClip);
+    } catch {
+      stopClip();
+    }
+  };
+  if (v.readyState >= 1) go();
+  else v.addEventListener("loadedmetadata", go, { once: true });
+
+  clearTimeout(clipTimer);
+  clipTimer = setTimeout(stopClip, CLIP_READY_MS + 1500);
 }
 
 function tick() {

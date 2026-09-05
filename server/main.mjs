@@ -24,7 +24,11 @@ import { loadPlayers, splitName } from "./players.mjs";
 import { loadLeague, placeholderLeague } from "./league.mjs";
 import { createReveal } from "./reveal.mjs";
 import { createHeadshots } from "./headshots.mjs";
-import { createHighlights } from "./highlights.mjs";
+import { CLIP_DIR, createHighlights, isVideoName, localClip, localClipCount } from "./highlights.mjs";
+import { createWriteStream, existsSync } from "node:fs";
+import { extname, join } from "node:path";
+import { createReadStream, rmSync, statSync } from "node:fs";
+import { ensureDir } from "./persist.mjs";
 import { readJsonSync } from "./persist.mjs";
 import { createLaunch, registerCoreChecks } from "./launch.mjs";
 import { createAudio, KIND } from "./audio.mjs";
@@ -438,6 +442,47 @@ const handleFrame = createFrameHandler({
   },
 });
 
+// Video, from this disk, with range support. Range matters: without it the
+// browser downloads from the beginning before it can seek, which is the whole
+// latency problem we moved to local files to avoid.
+const CLIP_MIME = { ".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime", ".m4v": "video/mp4" };
+
+function serveClip(req, res, file) {
+  if (!existsSync(file)) {
+    res.writeHead(404);
+    return res.end();
+  }
+  const size = statSync(file).size;
+  const type = CLIP_MIME[extname(file).toLowerCase()] ?? "video/mp4";
+  const range = req.headers.range;
+  if (range) {
+    const spec = String(range).split("=")[1] || "";
+    const dash = spec.indexOf("-");
+    const from = dash > 0 ? spec.slice(0, dash).trim() : spec.trim();
+    const to = dash >= 0 ? spec.slice(dash + 1).trim() : "";
+    const start = from ? Number(from) : 0;
+    const end = to ? Number(to) : size - 1;
+    if (start >= size) {
+      res.writeHead(416, { "Content-Range": "bytes */" + size });
+      return res.end();
+    }
+    res.writeHead(206, {
+      "Content-Type": type,
+      "Content-Range": "bytes " + start + "-" + end + "/" + size,
+      "Accept-Ranges": "bytes",
+      "Content-Length": end - start + 1,
+      "Cache-Control": "max-age=86400",
+    });
+    return createReadStream(file, { start, end }).pipe(res);
+  }
+  res.writeHead(200, {
+    "Content-Type": type,
+    "Content-Length": size,
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "max-age=86400",
+  });
+  return createReadStream(file).pipe(res);
+}
 // -------------------------------------------------------------------- routes
 
 function wireEvent(kind, detail) {
@@ -476,6 +521,7 @@ const routes = {
       proTeam: p.proTeam,
       adp: p.adp,
       clip: highlights.all[String(p.id)] ?? null,
+      local: !!localClip(p.id),
     }));
     return json(200, { total: players?.byAdp?.length ?? 0, withClips: highlights.size, rows });
   },
@@ -491,6 +537,39 @@ const routes = {
   },
   "POST /api/catalog/remove": ({ body, json }) => json(200, highlights.remove(Number(body.playerId))),
   "POST /api/catalog/preflight": async ({ json }) => json(200, await highlights.preflight()),
+
+  // A video file, straight to disk. Streamed rather than buffered, because a
+  // highlight is megabytes and there is no reason for it to pass through memory.
+  "RAW POST /api/clip/:playerId": ({ req, res, params, json }) => {
+    const playerId = Number(params.playerId);
+    const name = String(req.headers["x-filename"] ?? "clip.mp4");
+    if (!playerId || !isVideoName(name)) return json(400, { ok: false, reason: "not a video file" });
+    ensureDir(CLIP_DIR);
+    const dest = join(CLIP_DIR, String(playerId) + extname(name).toLowerCase());
+    const out = createWriteStream(dest);
+    req.pipe(out);
+    out.on("finish", () => {
+      const local = localClip(playerId);
+      log("clip saved: " + (local ? local.name + "  " + Math.round(local.bytes / 1024) + " KB" : dest));
+      json(200, { ok: true, bytes: local ? local.bytes : 0 });
+    });
+    out.on("error", (e) => json(500, { ok: false, reason: e.message }));
+  },
+
+  // Served from this disk, with range support so the browser can seek instantly.
+  "GET /clip/:name": ({ req, res, params }) => {
+    const name = String(params.name);
+    if (!isVideoName(name) || name.includes("..")) {
+      res.writeHead(404);
+      return res.end();
+    }
+    return serveClip(req, res, join(CLIP_DIR, name));
+  },
+  "POST /api/clip/remove": ({ body, json }) => {
+    const local = localClip(Number(body.playerId));
+    if (local) rmSync(local.file, { force: true });
+    return json(200, { ok: true });
+  },
   "POST /api/launch": async ({ body, json }) => {
     const gate = await launch.evaluate();
     if (!gate.ready && !body.force) return json(409, { ok: false, reason: "not all checks are green", checks: gate.checks });
@@ -610,7 +689,9 @@ server.listen(PORT, HOST, async () => {
     label: "Highlight catalogue",
     blocking: false,
     run: () => {
-      if (!highlights.size) return { ok: true, na: true, detail: "no clips - every pick gets its card" };
+      const local = localClipCount();
+      if (!highlights.size && !local) return { ok: true, na: true, detail: "no clips - every pick gets its card" };
+      if (local) return { ok: true, detail: local + " clips on this disk" + (highlights.size ? ", " + highlights.size + " catalogued" : "") };
       const stale = Object.values(highlights.all).filter((c) => c.videoId && !c.disabled && !c.verifiedAt).length;
       if (stale) return { ok: false, detail: stale + " clips unverified - run the preflight on /curate" };
       return { ok: true, detail: highlights.size + " clips verified" };

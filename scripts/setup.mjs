@@ -14,7 +14,14 @@ import { untouched } from "./lore-template.mjs";
 
 /** Two complete sentences. A stop is only a stop before a space and a capital. */
 function trimNote(text) {
-  const clean = String(text).split(/s+/).join(" ").trim();
+  // Collapse whitespace without a pattern. Escape sequences do not survive
+  // being edited through a shell, and this file has now lost one twice.
+  let clean = String(text);
+  for (const ch of [String.fromCharCode(9), String.fromCharCode(10), String.fromCharCode(13)]) {
+    clean = clean.split(ch).join(" ");
+  }
+  while (clean.includes("  ")) clean = clean.split("  ").join(" ");
+  clean = clean.trim();
   const parts = [];
   let last = 0;
   for (let i = 0; i < clean.length - 1; i++) {

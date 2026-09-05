@@ -50,11 +50,12 @@ export function createHighlights({ file = "data/highlights.json", onWarn = () =>
     return c;
   }
 
-  function set(playerId, { videoId, start = 0, ceilingMs, title = "", note = "" }) {
+  function set(playerId, { videoId, start = 0, ceilingMs, title = "", note = "", localOnly = false }) {
     const id = videoIdFrom(videoId);
-    if (!id) return { ok: false, reason: "that does not look like a YouTube link" };
+    if (!id && !localOnly) return { ok: false, reason: "that does not look like a YouTube link" };
     catalog[String(playerId)] = {
-      videoId: id,
+      ...(catalog[String(playerId)] ?? {}),
+      videoId: id ?? null,
       start: Math.max(0, Number(start) || 0),
       ceilingMs: Number(ceilingMs) || 8000,
       title,
@@ -125,9 +126,57 @@ export function createHighlights({ file = "data/highlights.json", onWarn = () =>
     },
     /** What the reveal asks for. Never throws, never waits. */
     contentFor(card) {
+      const entry = catalog[String(card.playerId)] ?? {};
+      if (entry.disabled) return null;
+      // A file on this disk starts on the next frame. Always prefer it.
+      const local = localClip(card.playerId);
+      if (local) {
+        return {
+          kind: "file",
+          url: "/clip/" + encodeURIComponent(local.name),
+          startSec: entry.start ?? 0,
+          ceilingMs: entry.ceilingMs ?? 8000,
+        };
+      }
       const clip = get(card.playerId);
       if (!clip) return null;
       return { kind: "video", videoId: clip.videoId, startSec: clip.start, ceilingMs: clip.ceilingMs };
     },
   };
+}
+
+// ---------------------------------------------------------------- local files
+//
+// A local file beats an embed for one reason that has nothing to do with
+// adverts: an eight-second reveal cannot carry a network dependency. An embed
+// spends one to three seconds loading, negotiating and seeking before it shows
+// anything, every time, and it varies with the venue's connection. A file on
+// this disk starts on the next frame.
+//
+// The catalogue entry is the same shape either way - a start second and a
+// ceiling - so a clip can be local, an embed, or neither, and the reveal treats
+// all three the same.
+
+import { existsSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+export const CLIP_DIR = "data/clips";
+const VIDEO_EXT = [".mp4", ".webm", ".mov", ".m4v"];
+
+/** The file for a player, whatever extension it was saved with. */
+export function localClip(playerId, dir = CLIP_DIR) {
+  for (const ext of VIDEO_EXT) {
+    const f = join(dir, String(playerId) + ext);
+    if (existsSync(f)) return { file: f, name: String(playerId) + ext, bytes: statSync(f).size };
+  }
+  return null;
+}
+
+export function localClipCount(dir = CLIP_DIR) {
+  if (!existsSync(dir)) return 0;
+  return readdirSync(dir).filter((f) => VIDEO_EXT.some((e) => f.toLowerCase().endsWith(e))).length;
+}
+
+export function isVideoName(name) {
+  return VIDEO_EXT.some((e) => String(name).toLowerCase().endsWith(e));
 }
