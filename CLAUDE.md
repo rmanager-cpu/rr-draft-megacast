@@ -55,61 +55,41 @@ npm run login -- --fresh      then sign in as Rmanager@riverranchlodge.com
 
 It prints which account it captured. It must say **Mega Cast**, team #2. If it says Alex
 Mondschein, the show and the owner will fight over one seat in the draft room all night.
-## NEXT: the dry run. Do this first.
+## The dry run happened on Sep 4. It worked.
 
-Not yet done as of Sep 4. It answers the only two open questions in the project at
-once, and everything else is downstream of both. No HDMI, no second screen, no full
-screen - a browser window on whatever monitor is in front of you.
+Two live practice drafts, read straight out of the real ESPN draft room. Twenty-three
+picks and then fifteen, no disconnects, no gaps, nothing flagged. The booth called every
+pick. Saquon Barkley went ninth in both, and **his local video played on TV 2 when he was
+drafted**, which is the thing the whole highlight layer exists to do.
 
-Set the machine up first: see **Moving it to another machine** in `README.md`.
-
-**1. Put the show on its own ESPN account.**
-
-```
-npm run login -- --fresh
-```
-
-Sign in as `Rmanager@riverranchlodge.com` (Mega Cast). It confirms the account and team
-back to you. It must say Mega Cast and team #2, not Alex Mondschein.
-
-**2. Curate a few clips for players who will certainly go early.** Without this the
-reveal shows a card and the run teaches nothing about YouTube.
+### Use `--source room` on the night
 
 ```
-npm run replay:step
+npm start -- --source room --league <id>
 ```
 
-Open `http://127.0.0.1:7788/curate` and put clips on the top five by draft position:
-Gibbs, Bijan Robinson, Chase, Nacua, Jonathan Taylor. They go in the first handful of
-picks of any draft. Then stop that server.
+It opens the draft room in its own window and reads the frames that window is already
+receiving. There is exactly one connection to the room and it belongs to the browser, so
+there is nothing to evict and nothing to fight over. Draft in that window.
 
-**3. Start a practice draft in ESPN.** Take the league id out of the URL. It is a
-separate, temporary league with its own id, and it is deleted when it finishes.
+This is the same technique as the original 8/29 capture, which is the only approach that
+has now survived a full draft twice.
 
-**4. Run the show against it.**
+### Why not the direct client
 
-```
-npm start -- --league <practice league id>
-```
+It works - it joins, decodes the room, and reads picks - but ESPN allows one draft-room
+connection per member, and the show and the drafter kept evicting each other. That is
+fine in principle, because on the real league the owner and Mega Cast are two different
+members of team #2. It is just **unproven**, and it cannot be proven beforehand:
 
-**5. Open `http://127.0.0.1:7788/studio` in a browser window** and click it once so
-Chrome will allow sound. That is where the card appears and the clip plays. Then draft
-in your normal browser, signed in as yourself.
+**A practice draft contains only the account that created it.** Co-managers do not carry
+across. Confirmed four times in both directions on Sep 4. So two accounts can never be in
+one practice draft, and coexistence gets its first real test on draft night itself.
 
-### What it settles
-
-**Can Mega Cast and the owner sit in the room together.** ESPN allows one draft-room
-connection per member; two on the same account evict each other, which was proven on the
-9/4 practice draft. A co-manager is a different member and should be fine, but it is
-unproven. If the show gets closed within seconds three times running it will say so
-plainly and back off rather than spend the night evicting the drafter. If that happens,
-switch to `--source room`, which reads the frames of the window you are drafting in and
-cannot be evicted because it opens nothing.
-
-**Whether a YouTube clip actually plays inside the reveal.** The card shows immediately
-and the clip only appears once the real video is running, so an advert is never seen -
-but an advert can still eat the window. If clips reliably fail to start, that decides the
-local-files question, which is already specified below and cleared by the owner.
+The room source has no such question hanging over it, which is why it is the recommended
+path. If the direct client is used instead and the two accounts do collide, the show says
+so plainly on /status, backs off to one attempt a minute rather than fighting for the
+seat, and the launch gate refuses to go green.
 ## The league, confirmed from ESPN on Sep 4
 
 **Live free or die hard RR4L**, league id `36784699`. Twelve teams, full.

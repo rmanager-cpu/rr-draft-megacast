@@ -15,12 +15,20 @@ import { loadEnv } from "./env.mjs";
 
 const args = process.argv.slice(2);
 const fresh = args.includes("--fresh");
-const profileDir = "data/chrome-profile";
+let profileDir = "data/chrome-profile";
 const LF = String.fromCharCode(10);
 
+// Windows will not delete a profile a browser still has open, and the browser
+// is often still shutting down. Rather than fight it, start a new profile
+// beside it: the point of --fresh is a clean session, not a tidy disk.
 if (fresh && existsSync(profileDir)) {
-  rmSync(profileDir, { recursive: true, force: true });
-  console.log("cleared the old browser profile");
+  try {
+    rmSync(profileDir, { recursive: true, force: true });
+    console.log("cleared the old browser profile");
+  } catch {
+    profileDir = profileDir + "-" + Date.now().toString(36);
+    console.log("the old profile is still in use, so using a new one");
+  }
 }
 
 const env = loadEnv();
