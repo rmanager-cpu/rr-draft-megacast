@@ -39,6 +39,22 @@ The show is built and runs end to end. Branch: `build/show-server`.
 - No highlight clips curated yet.
 - The in-room rehearsal on the real TVs and speaker.
 
+## BEFORE THE DRAFT: the show must be signed in as Mega Cast
+
+On the night the owner drafts as himself and the show sits in the room as **Mega Cast**,
+the co-manager on team #2. Two different members on the same team, which is the case ESPN
+is built for.
+
+On Sep 4 the cookies were switched to the owner's own account **temporarily**, only because
+a practice draft contains nothing but the account that created it, so two accounts can
+never be in one and coexistence cannot be rehearsed there.
+
+```
+npm run login -- --fresh      then sign in as Rmanager@riverranchlodge.com
+```
+
+It prints which account it captured. It must say **Mega Cast**, team #2. If it says Alex
+Mondschein, the show and the owner will fight over one seat in the draft room all night.
 ## NEXT: the dry run. Do this first.
 
 Not yet done as of Sep 4. It answers the only two open questions in the project at
