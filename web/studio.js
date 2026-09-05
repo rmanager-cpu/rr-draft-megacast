@@ -155,6 +155,47 @@ function stopClip() {
   } catch {}
 }
 
+// A pre-roll advert reports itself as PLAYING, so "playing" is not enough to put
+// something on a television in front of twelve people. The advert runs on its own
+// timeline, so the real video is only up when the playhead is where we asked for
+// it AND moving. Until both are true the card stays, which is no loss: the card
+// was already on screen and is what the clip sits on top of.
+const CONFIRM_MS = 2500;
+
+function confirmRealVideo(player, startSec, ceilingMs) {
+  const deadline = Date.now() + CONFIRM_MS;
+  let previous = -1;
+
+  const check = () => {
+    if (!current) return;
+    let t = 0;
+    try {
+      t = player.getCurrentTime();
+    } catch {
+      stopClip();
+      return;
+    }
+    const atTheRightPlace = t >= startSec - 2;
+    const moving = previous >= 0 && t > previous;
+    if (atTheRightPlace && moving) {
+      clearTimeout(clipTimer);
+      clipBox.classList.add("live");
+      clipTag.classList.add("live");
+      // Length is a ceiling, and the reveal may already have been shortened.
+      const budget = Math.min(ceilingMs ?? 8000, Math.max(0, (current?.endsAt ?? 0) - serverNow()));
+      clipTimer = setTimeout(stopClip, Math.max(1200, budget));
+      return;
+    }
+    previous = t;
+    if (Date.now() > deadline) {
+      // Most likely an advert, or a video that will not start. Stay on the card.
+      stopClip();
+      return;
+    }
+    setTimeout(check, 300);
+  };
+  check();
+}
 function playClip(content, card, ceilingMs) {
   stopClip();
   if (!content || content.kind !== "video" || !ytReady || !window.YT?.Player) return;
@@ -165,7 +206,7 @@ function playClip(content, card, ceilingMs) {
 
   // If it has not actually started inside the window, give up and stay on the
   // card. Silence and a card beat a black rectangle.
-  clipTimer = setTimeout(stopClip, CLIP_READY_MS);
+  clipTimer = setTimeout(stopClip, CLIP_READY_MS + CONFIRM_MS);
 
   try {
     ytPlayer = new window.YT.Player(mount, {
@@ -178,6 +219,7 @@ function playClip(content, card, ceilingMs) {
         modestbranding: 1,
         rel: 0,
         playsinline: 1,
+        iv_load_policy: 3,
         start: content.startSec || 0,
         mute: 1,
       },
@@ -190,12 +232,7 @@ function playClip(content, card, ceilingMs) {
         },
         onStateChange: (e) => {
           if (e.data !== window.YT.PlayerState.PLAYING) return;
-          clearTimeout(clipTimer);
-          clipBox.classList.add("live");
-          clipTag.classList.add("live");
-          // Length is a ceiling, and the reveal may have already shortened it.
-          const budget = Math.min(ceilingMs ?? 8000, Math.max(0, (current?.endsAt ?? 0) - serverNow()));
-          clipTimer = setTimeout(stopClip, Math.max(1200, budget));
+          confirmRealVideo(e.target, content.startSec || 0, ceilingMs);
         },
         onError: stopClip,
       },
