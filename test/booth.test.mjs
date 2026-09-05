@@ -124,3 +124,33 @@ test("a rejected recap falls back to the written one rather than silence", async
   assert.match(said[0].text, /round 2/, "the written recap went out instead");
   assert.doesNotMatch(said[0].text, /traded/);
 });
+
+test("what the lore file says, the booth may say", async () => {
+  const said = [];
+  const audio = createAudio({ onPlay: (i) => said.push(i) });
+  const booth = createBooth({
+    audio,
+    lore: "Dave Hoff has finished last twice, in 2019 and 2023. The trophy is the Golden Cleat.",
+    writer: { available: true, line: async () => "Second Golden Cleat since 2019 if he keeps this up." },
+    config: {},
+  });
+  const r = await booth.interject(card(), {});
+  assert.equal(r.queued, true, "a fact from the lore file passed the checks");
+  assert.match(said[0].text, /Golden Cleat/);
+});
+
+test("what the lore file does not say is still refused", async () => {
+  const said = [];
+  const warnings = [];
+  const audio = createAudio({ onPlay: (i) => said.push(i) });
+  const booth = createBooth({
+    audio,
+    lore: "Dave Hoff has finished last twice.",
+    writer: { available: true, line: async () => "He won it all in 2021 with the Silver Boot." },
+    onWarn: (w) => warnings.push(w),
+    config: {},
+  });
+  const r = await booth.interject(card(), {});
+  assert.equal(r.queued, false);
+  assert.equal(said.length, 0);
+});

@@ -17,6 +17,7 @@
     "soak": "node scripts/soak.mjs --minutes 120 --speed 1",
     "league": "node scripts/league-info.mjs",
     "prefetch": "node scripts/prefetch-headshots.mjs --top 400",
+    "lore": "node scripts/lore-template.mjs",
     "watch": "node server/watch.mjs",
     "spike:poll": "node scripts/spike-poll.mjs",
     "spike:room": "node scripts/spike-room.mjs",

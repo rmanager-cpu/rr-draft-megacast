@@ -151,3 +151,35 @@ export function pickPacket({ card, league, players, note = "" }) {
     maxChars: 240,
   };
 }
+
+/**
+ * Pull the sayable facts out of a free-text file the owner wrote.
+ *
+ * The guard only lets the booth say what is in the packet, which is what keeps
+ * it from inventing things about real people. But it means the lore file is
+ * inert unless its contents are handed over too. So anything written there -
+ * a name, a year, a score - becomes allowed, and anything not written there
+ * stays refused. The file is the boundary, which is the right place for the
+ * owner to control it.
+ */
+export function factsFrom(text) {
+  const s = String(text ?? "");
+  const names = [];
+  for (const m of s.matchAll(/\b[A-Z][A-Za-z'\u2019-]+\b/g)) names.push(m[0]);
+
+  const numbers = [];
+  let run = "";
+  for (const ch of s + " ") {
+    const isDigit = ch >= "0" && ch <= "9";
+    if (isDigit || (run && (ch === "." || ch === ","))) {
+      run += ch;
+      continue;
+    }
+    if (run) {
+      const n = Number(run.split(",").join("").replace(TRAILING_DOT, ""));
+      if (Number.isFinite(n)) numbers.push(n);
+      run = "";
+    }
+  }
+  return { names: [...new Set(names)], numbers: [...new Set(numbers)] };
+}

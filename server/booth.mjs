@@ -5,7 +5,7 @@
 // The show is built so that losing the booth costs colour, never continuity: the
 // board still updates, the reveal still runs, and the speaker still calls picks.
 
-import { checkLine, pickPacket } from "./booth-checks.mjs";
+import { checkLine, factsFrom, pickPacket } from "./booth-checks.mjs";
 import { KIND } from "./audio.mjs";
 
 const POSITION_WORD = { QB: "quarterback", RB: "running back", WR: "wide receiver", TE: "tight end", K: "kicker", "D/ST": "defense" };
@@ -82,8 +82,12 @@ export function createBooth({
   onWarn = () => {},
   onInfo = () => {},
   notesFor = () => "",
+  // Everything the owner wrote about this league. Whatever is in it may be
+  // said; whatever is not stays refused. The file is the boundary.
+  lore = "",
 }) {
   const pickAudio = config.pickAudio ?? "sting+name";
+  const loreFacts = factsFrom(lore);
   const stats = { calls: 0, written: 0, generated: 0, rejected: 0, recaps: 0 };
 
   /** Put a line on the speaker, with sound if we have it and the system voice if not. */
@@ -117,6 +121,8 @@ export function createBooth({
     const windowMs = (cfg.dropIfLaterThanSeconds ?? 10) * 1000;
     const deadline = Date.now() + windowMs;
     const packet = pickPacket({ card, league: getLeague(), note: notesFor(card.playerId) });
+    packet.names = [...packet.names, ...loreFacts.names];
+    packet.numbers = [...packet.numbers, ...loreFacts.numbers];
     const { score, reasons } = interestOf(card, context);
     packet.why = reasons;
 
@@ -165,8 +171,9 @@ export function createBooth({
         names: [
           ...picks.flatMap((c) => [c.name, c.teamName, c.manager, c.proTeam]),
           ...(getLeague().teams ?? []).flatMap((t) => [t.name, t.manager]),
+          ...loreFacts.names,
         ].filter(Boolean),
-        numbers: [round, ...picks.map((c) => c.pick), ...picks.map((c) => c.adp).filter(Boolean)],
+        numbers: [round, ...picks.map((c) => c.pick), ...picks.map((c) => c.adp).filter(Boolean), ...loreFacts.numbers],
         notes: picks.map((c) => notesFor(c.playerId)).filter(Boolean).join(" "),
         maxChars: 1400,
       };

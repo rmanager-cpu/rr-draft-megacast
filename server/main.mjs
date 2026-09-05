@@ -139,6 +139,7 @@ const voice = createVoice({
   onWarn: (w) => log("warn:", w),
 });
 const playerNotes = readJsonSync("data/player-notes.json", {}) ?? {};
+const loreText = readTextOr("data/lore.md", "");
 const booth = createBooth({
   audio,
   writer,
@@ -146,6 +147,7 @@ const booth = createBooth({
   config: showConfig,
   getLeague: () => league,
   notesFor: (id) => playerNotes[String(id)] ?? "",
+  lore: loreText,
   onWarn: (w) => { log("booth:", w); state.warn(w); },
   onInfo: log,
 });
@@ -620,6 +622,7 @@ server.listen(PORT, HOST, async () => {
       season: SEASON,
       leagueId: LEAGUE_ID,
       cookie: "SWID=" + env.ESPN_SWID + "; espn_s2=" + env.ESPN_S2,
+      excludeOwner: env.ESPN_SWID,
       onInfo: log,
       onWarn: (w) => log("warn:", w),
       allowPlaceholder: true,
@@ -665,6 +668,7 @@ server.listen(PORT, HOST, async () => {
       season: SEASON,
       leagueId: LEAGUE_ID,
       cookie: "SWID=" + env.ESPN_SWID + "; espn_s2=" + env.ESPN_S2,
+      excludeOwner: env.ESPN_SWID,
       onInfo: log,
       onWarn: (w) => log("warn:", w),
       allowPlaceholder: true,

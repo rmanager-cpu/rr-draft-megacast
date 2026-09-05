@@ -9,7 +9,7 @@ const BASE = (season, leagueId) =>
 
 const SLOT_LABEL = { 0: "QB", 2: "RB", 4: "WR", 6: "TE", 16: "D/ST", 17: "K", 20: "Bench", 21: "IR", 23: "FLEX" };
 
-export async function fetchLeague({ season, leagueId, cookie, timeoutMs = 10000 }) {
+export async function fetchLeague({ season, leagueId, cookie, excludeOwner, timeoutMs = 10000 }) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), timeoutMs);
   try {
@@ -18,25 +18,35 @@ export async function fetchLeague({ season, leagueId, cookie, timeoutMs = 10000 
       headers: { accept: "application/json", ...(cookie ? { cookie } : {}) },
     });
     if (!r.ok) throw new Error("league HTTP " + r.status);
-    return shape(await r.json(), leagueId);
+    return shape(await r.json(), leagueId, { excludeOwner });
   } finally {
     clearTimeout(t);
   }
 }
 
-function shape(j, leagueId) {
+function shape(j, leagueId, { excludeOwner } = {}) {
   const s = j.settings ?? {};
   const ds = s.draftSettings ?? {};
   const members = new Map((j.members ?? []).map((m) => [m.id, m]));
-  const managerOf = (t) =>
-    (t.owners ?? [])
-      .map((o) => {
-        const m = members.get(o);
-        if (!m) return "";
-        return ((m.firstName ?? "") + " " + (m.lastName ?? "")).trim() || m.displayName || "";
-      })
-      .filter(Boolean)
-      .join(" + ");
+  // The show's own watcher account is a co-manager, but it is not a person and
+  // must never appear on a television. Duplicate names are dropped too: one
+  // manager here holds two accounts, and "Rojek + Rojek" reads like a bug.
+  const nameOf = (o) => {
+    const m = members.get(o);
+    if (!m) return "";
+    return ((m.firstName ?? "") + " " + (m.lastName ?? "")).trim() || m.displayName || "";
+  };
+
+  // The show's own watcher account is a co-manager but is not a person, and must
+  // never appear on a television. It is only dropped when somebody else is left:
+  // a team with no manager name at all would be worse. Duplicates go too, because
+  // one manager here holds two accounts and "Rojek + Rojek" reads like a bug.
+  const managerOf = (t) => {
+    const owners = t.owners ?? [];
+    const others = owners.filter((o) => !excludeOwner || o !== excludeOwner);
+    const names = (others.length ? others : owners).map(nameOf).filter(Boolean);
+    return [...new Set(names)].join(" + ");
+  };
 
   const slots = s.rosterSettings?.lineupSlotCounts ?? {};
   const rounds = Object.entries(slots)
@@ -101,6 +111,7 @@ export async function loadLeague({
   season = 2026,
   leagueId,
   cookie,
+  excludeOwner,
   cacheFile = "data/league.json",
   onInfo = () => {},
   onWarn = () => {},
@@ -109,7 +120,7 @@ export async function loadLeague({
 } = {}) {
   if (!leagueId && allowPlaceholder) return placeholderLeague({ leagueId: 0, ...placeholder });
   try {
-    const league = await fetchLeague({ season, leagueId, cookie });
+    const league = await fetchLeague({ season, leagueId, cookie, excludeOwner });
     writeAtomicSync(cacheFile, { fetchedAt: new Date().toISOString(), league }, { onWarn });
     onInfo(`league "${league.name}" - ${league.size} teams, ${league.rounds} rounds`);
     return league;
