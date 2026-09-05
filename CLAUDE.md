@@ -87,6 +87,32 @@ lands. Turbo is not a name in the league, but team #9 "Who's the Man?", managed 
 Burnham, carries the abbreviation "TURb" - almost certainly him. **Unconfirmed by the
 owner.** The booth must not use a nickname for a real person on the strength of a guess,
 so leave the lean off Turbo until that is a yes.
+## Highlights: decided to store them locally (Sep 4, not yet built)
+
+The owner has cleared downloading. The reason is not adverts, it is that an eight-second
+reveal cannot carry a network dependency: a YouTube embed spends one to three seconds
+loading, negotiating and seeking before it shows anything, every time, and varies with the
+venue's connection. A local file starts on the next frame. Adverts disappearing is a side
+effect. Google Drive and similar are strictly worse - still a network hop, plus throttled
+hotlinks and an auth session.
+
+Two things learned while setting this up:
+
+- **The show machine needs `yt-dlp` and `ffmpeg`.** On Windows:
+  `winget install yt-dlp.yt-dlp` and `winget install Gyan.FFmpeg`. Restart the shell after;
+  winget updates PATH but not the running one.
+- **`--download-sections` does not work against YouTube.** ffmpeg makes its own range
+  request without yt-dlp's session and gets a 403. Download the whole video with yt-dlp,
+  then trim locally with ffmpeg, then delete the original. Peak disk is one full video.
+
+Clips play muted over the card, so download video only - no audio stream at all.
+
+Still to build: a fetch step, a file path in the studio alongside the existing embed path,
+a download button on /curate, and a preflight that asks whether the file is on disk. Keep
+the embed code: a clip with no local file should still play the old way.
+
+The catalogue (`data/highlights.json`) travels in git. The video files do not, so the fetch
+runs on whichever machine will run the show.
 ## The watcher account
 
 The show needs its own ESPN account, added as a **co-manager on the owner's own team**.
