@@ -160,10 +160,23 @@ function stopClip() {
 // timeline, so the real video is only up when the playhead is where we asked for
 // it AND moving. Until both are true the card stays, which is no loss: the card
 // was already on screen and is what the clip sits on top of.
-const CONFIRM_MS = 2500;
+// How long to keep waiting for the real video. A pre-roll advert can be ten or
+// fifteen seconds, and waiting it out costs nothing visible, because the card is
+// already on screen and stays there. So wait as long as the reveal can spare
+// while still leaving a few seconds of clip worth showing - and no longer, since
+// a card that sits doing nothing is its own kind of wrong.
+const CONFIRM_MIN_MS = 2500;
+const CONFIRM_MAX_MS = 12000;
+const CLIP_WORTH_SHOWING_MS = 3500;
+
+function confirmWindow() {
+  const left = (current?.endsAt ?? 0) - serverNow();
+  const spare = left - CLIP_WORTH_SHOWING_MS;
+  return Math.max(CONFIRM_MIN_MS, Math.min(CONFIRM_MAX_MS, spare));
+}
 
 function confirmRealVideo(player, startSec, ceilingMs) {
-  const deadline = Date.now() + CONFIRM_MS;
+  const deadline = Date.now() + confirmWindow();
   let previous = -1;
 
   const check = () => {
@@ -206,7 +219,7 @@ function playClip(content, card, ceilingMs) {
 
   // If it has not actually started inside the window, give up and stay on the
   // card. Silence and a card beat a black rectangle.
-  clipTimer = setTimeout(stopClip, CLIP_READY_MS + CONFIRM_MS);
+  clipTimer = setTimeout(stopClip, CLIP_READY_MS + CONFIRM_MAX_MS);
 
   try {
     ytPlayer = new window.YT.Player(mount, {
