@@ -526,7 +526,12 @@ const routes = {
     return json(200, { total: players?.byAdp?.length ?? 0, withClips: highlights.size, rows });
   },
   "POST /api/catalog": ({ body, json }) => {
-    const res = highlights.set(Number(body.playerId), {
+    const playerId = Number(body.playerId);
+    // A player with a file on disk needs no link. Saving a start time for one
+    // was being refused as "not a YouTube link", silently, which left the clip
+    // playing from zero.
+    const res = highlights.set(playerId, {
+      localOnly: !!localClip(playerId) || !!body.localOnly,
       videoId: body.url ?? body.videoId,
       start: body.start,
       ceilingMs: body.ceilingMs,

@@ -82,8 +82,9 @@ el("upload").addEventListener("click", async () => {
   })
     .then((x) => x.json())
     .catch((e) => ({ ok: false, reason: String(e) }));
+  let saved = { ok: true };
   if (r.ok) {
-    await fetch("/api/catalog", {
+    saved = await fetch("/api/catalog", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -94,10 +95,15 @@ el("upload").addEventListener("click", async () => {
         ceilingMs: Math.max(2, Number(el("ceiling").value) || 8) * 1000,
         title: rows[current].name,
       }),
-    });
+    })
+      .then((x) => x.json())
+      .catch((e) => ({ ok: false, reason: String(e) }));
   }
-  el("msg").className = r.ok ? "note good" : "note err";
-  el("msg").textContent = r.ok ? "saved " + Math.round(r.bytes / 1048576) + " MB to disk" : r.reason;
+  const good = r.ok && saved.ok;
+  el("msg").className = good ? "note good" : "note err";
+  el("msg").textContent = good
+    ? "saved " + Math.round(r.bytes / 1048576) + " MB to disk"
+    : (r.reason || saved.reason || "save failed");
   load();
 });
 
