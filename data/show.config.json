@@ -29,11 +29,12 @@
     15,
     16
   ],
-  "opinionsPerRecap": 3,
-  "_recapLeans": "Team id to love or dislike. These picks are always in the recap, on top of opinionsPerRecap others, so 2 leans + 3 = five picks a round. 2 is Trust The Process (Turbo), 3 is Doff (Dave).",
+  "opinionsPerRecap": 2,
+  "_recapLeans": "Team id to a lean. love and dislike are the two standing leans; any other text is an instruction the writer follows for that pick. These picks are always in the recap, on top of opinionsPerRecap others. 2 is Trust The Process (Turbo), 3 is Doff (Dave), 8 is Rojek's Daddy (Alvarez).",
   "recapLeans": {
     "2": "love",
-    "3": "dislike"
+    "3": "dislike",
+    "8": "Alvarez is an average attorney, a mediocre lawyer, an okay attorney at best. Work that into the pick, and rotate the phrasing. Never call him a good lawyer."
   },
   "recapSeconds": {
     "early": 45,
