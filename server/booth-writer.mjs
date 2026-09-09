@@ -124,7 +124,8 @@ Absolute rules:
         `about ${Math.round((packet.seconds ?? 75) * 2.4)} words, shorter if there is less ` +
         `to say. Give a real opinion on every pick marked interesting and on nothing else. A why ` +
         `of "lean: dislike" means be hard on that pick; "lean: love" means admire it; any ` +
-        `other lean text is an instruction to follow for that pick. ` +
+        `other lean text is an instruction to follow for that pick, and it overrides the ` +
+        `bible's standing lean on that manager. ` +
         `Do not run through the rest of the round and do ` +
         `not list every pick; the board is on the wall. Note any position run the packet ` +
         `reports. Return only what is to be said.`;

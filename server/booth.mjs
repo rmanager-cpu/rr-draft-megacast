@@ -153,7 +153,8 @@ export function createBooth({
     // The standing leans always get a word: config.recapLeans maps a team id to
     // "love" or "dislike". Then the most interesting of the rest, up to
     // opinionsPerRecap. Everything else goes unmentioned; the board is on the wall.
-    const leans = config.recapLeans ?? {};
+    // recapLeansByRound overrides a lean for one round, e.g. the last one.
+    const leans = { ...(config.recapLeans ?? {}), ...(config.recapLeansByRound?.[String(round)] ?? {}) };
     const leaned = picks
       .filter((card) => leans[String(card.teamId)])
       .map((card) => ({ card, score: 100, reasons: ["lean: " + leans[String(card.teamId)]] }));
