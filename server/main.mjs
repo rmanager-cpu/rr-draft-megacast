@@ -368,9 +368,21 @@ function bitFor(teamId) {
 // config: a named player being drafted, and a very rare pop-in. The name
 // match is on the player's full name, case-insensitive.
 let lastDemonPick = -Infinity;
+const demonTeamDone = new Set();
 function maybeDemon(card) {
   const d = showConfig.demon;
   if (!d) return;
+  // onTeamNext: the demon announces the NEXT pick this team makes after the
+  // show starts, once. {player}, {manager} and {team} are filled in from the card.
+  // Only live picks reach here, so a restart's catch-up batch never fires it.
+  const next = (d.onTeamNext ?? []).find((x) => x?.text && Number(x.teamId) === card.teamId && !demonTeamDone.has(Number(x.teamId)));
+  if (next) {
+    demonTeamDone.add(card.teamId);
+    const text = String(next.text).replaceAll("{player}", card.name).replaceAll("{manager}", card.manager).replaceAll("{team}", card.teamName);
+    log("demon announces " + card.manager + "'s pick: " + card.name);
+    booth.say(KIND.BIT, text, { voice: "awakening", meta: { pick: card.pick, demon: true } }).catch((e) => log("demon:", e.message));
+    return;
+  }
   const hit = (d.onPlayer ?? []).find((x) => x?.text && String(x.player ?? "").toLowerCase() === String(card.name ?? "").toLowerCase());
   if (hit) {
     log("demon: " + card.name + " drafted");

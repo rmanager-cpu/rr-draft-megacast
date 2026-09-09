@@ -152,6 +152,10 @@
       {
         "player": "Dak Prescott",
         "text": "Horrible pick."
+      },
+      {
+        "player": "Patrick Mahomes",
+        "text": "Patrick Mahomes - Terrible Pick."
       }
     ],
     "popIns": {
@@ -164,6 +168,13 @@
         "The substation hums.",
         "Do not disappoint me, Turbo."
       ]
-    }
+    },
+    "_onTeamNext": "The demon announces the next pick this team makes after the show starts, once. {player} {manager} {team} are filled in. 7 is Bailey.",
+    "onTeamNext": [
+      {
+        "teamId": 7,
+        "text": "Bailey. River Ranch's most elite bartender. Has chosen {player}. Model 7 approves."
+      }
+    ]
   }
 }
