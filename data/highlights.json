@@ -1,9 +1,745 @@
 {
+  "12483": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Matthew Stafford",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "15847": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Travis Kelce",
+    "note": "not a football play - Eras Tour clip",
+    "verifiedAt": 0
+  },
+  "16737": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Mike Evans",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "16800": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Davante Adams",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "2577417": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Dak Prescott",
+    "note": "warm-up clip, not a play",
+    "verifiedAt": 0
+  },
+  "2976212": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Stefon Diggs",
+    "note": "old clip (2017 Minneapolis Miracle)",
+    "verifiedAt": 0
+  },
+  "3040151": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "George Kittle",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "3043078": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Derrick Henry",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "3117251": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Christian McCaffrey",
+    "note": "CMC is the one getting hit, not making the play",
+    "verifiedAt": 0
+  },
+  "3121023": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Dallas Goedert",
+    "note": "AMBIGUOUS: clip features Jalen Hurts + Dallas Goedert",
+    "verifiedAt": 0
+  },
+  "3121422": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Terry McLaurin",
+    "note": "filename misspells as 'Trerry'",
+    "verifiedAt": 0
+  },
+  "3128429": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Courtland Sutton",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "3139477": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Patrick Mahomes",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "3915416": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "DJ Moore",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "3915511": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Joe Burrow",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "3916148": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Tony Pollard",
+    "note": "last name only in filename",
+    "verifiedAt": 0
+  },
+  "3916387": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Lamar Jackson",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "3918298": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Josh Allen",
+    "note": "",
+    "verifiedAt": 0
+  },
   "3929630": {
     "videoId": null,
     "start": 0,
     "ceilingMs": 8000,
     "title": "Saquon Barkley",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4035538": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "David Montgomery",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4035687": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Michael Pittman Jr.",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4038815": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Rico Dowdle",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4038941": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Justin Herbert",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4040715": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Jalen Hurts",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4047365": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Josh Jacobs",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4047646": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "A.J. Brown",
+    "note": "52 MB / 4K - largest file",
+    "verifiedAt": 0
+  },
+  "4047650": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "DK Metcalf",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4239993": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Tee Higgins",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4239996": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Travis Etienne Jr.",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4241389": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "CeeDee Lamb",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4241478": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "DeVonta Smith",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4242335": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Jonathan Taylor",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4248528": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Christian Watson",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4259545": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "D'Andre Swift",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4262921": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Justin Jefferson",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4360078": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Alec Pierce",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4360248": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Kyle Pitts Sr.",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4360310": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Trevor Lawrence",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4360761": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Michael Wilson",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4361307": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Trey McBride",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4361370": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Chris Olave",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4361579": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Javonte Williams",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4361741": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Brock Purdy",
+    "note": "GUESS: filename says only 'Brock'",
+    "verifiedAt": 0
+  },
+  "4362238": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Chase Brown",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4362628": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Ja'Marr Chase",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4371733": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Kenny Gainwell",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4372016": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Jaylen Waddle",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4374302": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Amon-Ra St. Brown",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4379399": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "James Cook III",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4426348": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Jayden Daniels",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4426354": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "George Pickens",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4426388": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Jameson Williams",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4426502": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Drake London",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4426515": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Puka Nacua",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4427366": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Breece Hall",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4428331": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Rashee Rice",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4429160": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "De'Von Achane",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4429615": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Zay Flowers",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4429795": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Jahmyr Gibbs",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4430027": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Sam LaPorta",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4430737": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Kyren Williams",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4430807": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Bijan Robinson",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4430878": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Jaxon Smith-Njigba",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4431299": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Rome Odunze",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4431452": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Drake Maye",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4431459": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Tyler Warren",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4431611": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Caleb Williams",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4432577": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "C.J. Stroud",
+    "note": "AMBIGUOUS: clip features C.J. Stroud + Nico Collins",
+    "verifiedAt": 0
+  },
+  "4432620": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Parker Washington",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4432708": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Marvin Harrison Jr.",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4432710": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "TreVeyon Henderson",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4567048": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Kenneth Walker III",
+    "note": "filename hashtags say Chiefs; player is Seahawks",
+    "verifiedAt": 0
+  },
+  "4567750": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Emeka Egbuka",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4569173": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Rhamondre Stevenson",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4569618": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Garrett Wilson",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4569987": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Jaylen Warren",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4572680": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Tucker Kraft",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4595348": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Malik Nabers",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4596448": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Bucky Irving",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4612826": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Ladd McConkey",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4685278": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Luther Burden III",
+    "note": "combine clip, not game action",
+    "verifiedAt": 0
+  },
+  "4685382": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Omarion Hampton",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4685472": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Tetairoa McMillan",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4685512": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Jadarian Price",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4685702": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Quinshon Judkins",
+    "note": "filename says only 'Quinshon'",
+    "verifiedAt": 0
+  },
+  "4689114": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Jaxson Dart",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4696981": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Cam Skattebo",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4723086": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Colston Loveland",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4870808": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Jeremiyah Love",
+    "note": "college clip (Notre Dame)",
+    "verifiedAt": 0
+  },
+  "4871023": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Carnell Tate",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4882093": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Bhayshul Tuten",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "4890973": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Ashton Jeanty",
+    "note": "",
+    "verifiedAt": 0
+  },
+  "5083076": {
+    "videoId": null,
+    "start": 0,
+    "ceilingMs": 8000,
+    "title": "Harold Fannin Jr.",
     "note": "",
     "verifiedAt": 0
   }

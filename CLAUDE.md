@@ -208,8 +208,11 @@ to read each new one, and use `--league <id>` rather than editing the environmen
 Open before round 1, recap after rounds 1 and 2, then every second round, final on
 completion. During picks: no commentary, just a sting and a short name call. People talk.
 
-Recaps are the show: 60 to 120 seconds, opinions on the few genuinely interesting picks,
-the rest as a quick rundown, position runs noted. Never interrupted. Interjections are
+Recaps are the show: commentary on the few genuinely interesting picks, position runs
+noted, and nothing else, never interrupted. **Owner, 2026-09-08: no rundown of every pick.
+The board is on the wall.** Same day: the Dave lean is unconditional. It fires on every Dave
+pick, every round, and the bible must not soften it with "earned" or "if Dave picks well,
+say so". Interjections are
 live and perishable, dropped if late, capped per round. Bits are pre-written and
 pre-rendered, keyed to manager and round.
 

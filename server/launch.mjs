@@ -94,12 +94,14 @@ export function registerCoreChecks(launch, { state, getSource = () => null, play
   });
 
   launch.registerCheck("displays", {
-    label: "Both TVs on the same version",
+    label: "TV on this build, 1080p",
     run: () => {
+      // The studio is the show: cards, clips, audio. The board is optional -
+      // the owner dropped it on draft night - so it is checked only when open.
       const b = displays().board;
       const s = displays().studio;
-      if (!b || !s) return { ok: false, detail: "waiting for " + (!b && !s ? "both TVs" : !b ? "the board" : "the studio") };
-      if (!seen(b) || !seen(s)) return { ok: false, detail: "a TV has stopped checking in" };
+      if (!s) return { ok: false, detail: "waiting for the studio" };
+      if (!seen(s) || (b && !seen(b))) return { ok: false, detail: "a TV has stopped checking in" };
 
       // "Same version" has to mean the same server generation, not an exact
       // match on a counter that moves with every pick - two TVs never sample
@@ -107,14 +109,14 @@ export function registerCoreChecks(launch, { state, getSource = () => null, play
       // a previous run, quietly showing yesterday.
       const build = state.buildId;
       const stale = [
-        b.build !== build ? "board" : null,
+        b && b.build !== build ? "board" : null,
         s.build !== build ? "studio" : null,
       ].filter(Boolean);
       if (stale.length) return { ok: false, detail: stale.join(" and ") + " left over from an earlier run - reload" };
 
-      const sizes = [b.screen, s.screen].filter((x) => x !== "1920x1080");
+      const sizes = [b?.screen, s.screen].filter((x) => x && x !== "1920x1080");
       if (sizes.length) return { ok: false, detail: "not at 1080p: " + sizes.join(", ") };
-      return { ok: true, detail: "both live on this build, 1080p" };
+      return { ok: true, detail: (b ? "both TVs" : "studio") + " live on this build, 1080p" };
     },
   });
 

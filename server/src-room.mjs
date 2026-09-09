@@ -45,6 +45,9 @@ export function createRoomSource({
   let relaunchTimer = null;
 
   function watch(p) {
+    // Once per page. Attaching twice made every frame arrive twice.
+    if (p.__watched) return;
+    p.__watched = true;
     p.on("websocket", (ws) => {
       if (!IS_DRAFT_SOCKET(ws.url())) return;
       sawSocket = true;
@@ -95,10 +98,16 @@ export function createRoomSource({
         headless,
         viewport: null,
         ignoreDefaultArgs: ["--enable-automation"],
-        args: ["--start-maximized"],
+        args: ["--start-maximized", "--hide-crash-restore-bubble"],
       });
+      // A profile that was killed rather than closed comes back with its old
+      // tabs restored, and a restored draft-room tab is a second connection
+      // from the same member: ESPN then evicts one of them. Keep exactly one
+      // page, and make it the one we navigate.
+      const extra = ctx.pages().slice(1);
+      for (const p of extra) await p.close().catch(() => {});
+      if (extra.length) onEvent("info", "closed " + extra.length + " restored tab(s) so the room has one connection");
       ctx.on("page", watch);
-      for (const p of ctx.pages()) watch(p);
     }
     page = ctx.pages()[0] ?? (await ctx.newPage());
     watch(page);

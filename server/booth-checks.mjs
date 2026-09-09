@@ -98,16 +98,25 @@ export function checkLine(text, packet = {}) {
 
   const whitelist = new Set(
     [...(packet.names ?? []), ...noteText.split(/[^A-Za-z'’-]+/)]
-      .flatMap((n) => String(n).split(/[\s.'-]+/))
+      .flatMap((n) => String(n).split(/[\s.'’-]+/))
       .map((w) => w.toLowerCase())
       .filter(Boolean),
   );
   for (const m of line.matchAll(/\b[A-Z][a-zA-Z'’-]+\b/g)) {
     const w = m[0];
-    const lower = w.toLowerCase();
-    if (COMMON.has(lower) || whitelist.has(lower)) continue;
-    // Short all-capitals tokens are abbreviations, not people: ADP, WR, PPR, MIN.
-    if (w.length <= 4 && w === w.toUpperCase()) continue;
+    // Checked piece by piece, the way the whitelist was built, so a hyphen or an
+    // apostrophe of either kind cannot hide a name we do know: Smith-Njigba, Ja’Marr.
+    // Short all-capitals tokens are abbreviations, not people: ADP, WR, PPR, MIN, WRs.
+    const abbrev = (t) => t.length <= 4 && t === t.toUpperCase();
+    // Contractions split into a word and a tail: I’m, Dave’s, we’ve. Plurals of
+    // ordinary words are ordinary words: Sundays, Chiefs.
+    const TAIL = new Set(["m", "s", "d", "t", "ve", "re", "ll"]);
+    const known = (t) => {
+      const l = t.toLowerCase();
+      if (l === "i" || COMMON.has(l) || whitelist.has(l) || TAIL.has(l) || abbrev(t)) return true;
+      return l.endsWith("s") && (abbrev(t.slice(0, -1)) || COMMON.has(l.slice(0, -1)) || whitelist.has(l.slice(0, -1)));
+    };
+    if (w.split(/['’-]+/).filter(Boolean).every(known)) continue;
     // A capitalised word that opens a sentence is usually just a sentence.
     const idx = m.index ?? 0;
     const before = line.slice(0, idx).trimEnd();

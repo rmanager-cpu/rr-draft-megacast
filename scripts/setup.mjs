@@ -109,8 +109,9 @@ if (blocked) {
   // --- what only a person can supply ---
   console.log("");
   console.log("Still needed from you");
-  env.ANTHROPIC_API_KEY ? ok("Anthropic key, so the booth writes its own lines") : no("ANTHROPIC_API_KEY in .env, or the booth reads written lines only");
-  env.ELEVENLABS_API_KEY ? ok("ElevenLabs key, so the booth has real voices") : no("ELEVENLABS_API_KEY in .env, or the booth uses this laptop's own voice");
+  if (env.OPENAI_API_KEY) ok("OpenAI key, so the booth writes its own lines and has real voices");
+  env.ANTHROPIC_API_KEY ? ok("Anthropic key, so the booth writes its own lines") : env.OPENAI_API_KEY ? null : no("ANTHROPIC_API_KEY or OPENAI_API_KEY in .env, or the booth reads written lines only");
+  env.ELEVENLABS_API_KEY ? ok("ElevenLabs key, so the booth has real voices") : env.OPENAI_API_KEY ? null : no("ELEVENLABS_API_KEY or OPENAI_API_KEY in .env, or the booth uses this laptop's own voice");
 
   // Exactly the test the generator uses, so the two can never disagree about
   // whether the owner has written anything. A word count could not tell the

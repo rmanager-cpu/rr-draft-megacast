@@ -50,7 +50,11 @@ export function pickCall(card, { style = "sting+name" } = {}) {
   return `${card.name}, ${pos}.`;
 }
 
-/** The written recap, used whenever the writer cannot be trusted or reached. */
+/**
+ * The written recap, used whenever the writer cannot be trusted or reached.
+ * Commentary on the interesting picks only. The rest of the round is not read
+ * back: the board is on the wall.
+ */
 export function writtenRecap(picks, { round, interesting = [] } = {}) {
   if (!picks.length) return "";
   const parts = [];
@@ -65,10 +69,7 @@ export function writtenRecap(picks, { round, interesting = [] } = {}) {
           : `${p.card.teamName} took ${p.card.name}`;
     parts.push(why + ".");
   }
-  const rest = picks.filter((p) => !interesting.some((i) => i.card.pick === p.pick));
-  if (rest.length) {
-    parts.push("Also off the board: " + rest.map((p) => p.name).join(", ") + ".");
-  }
+  if (!interesting.length) parts.push("Nothing on that board anyone would argue with. Back to the room.");
   return parts.join(" ");
 }
 
@@ -87,11 +88,16 @@ export function createBooth({
   lore = "",
 }) {
   const pickAudio = config.pickAudio ?? "sting+name";
+  // Who says what. Three voices: play-by-play calls the picks, colour reacts
+  // to them, and the host opens the show and reads the recaps. A voice that is
+  // not configured falls back to play-by-play inside the voice module.
+  const VOICE = { [KIND.NAME]: "play", [KIND.INTERJECT]: "colour", [KIND.RECAP]: "host", [KIND.FINAL]: "host", [KIND.OPEN]: "host", [KIND.BIT]: "host" };
+  const persona = (which) => String(config.personas?.[which] ?? "").trim();
   const loreFacts = factsFrom(lore);
   const stats = { calls: 0, written: 0, generated: 0, rejected: 0, recaps: 0 };
 
   /** Put a line on the speaker, with sound if we have it and the system voice if not. */
-  async function say(kind, text, { voice: which = "play", meta = {}, expiresAt } = {}) {
+  async function say(kind, text, { voice: which = VOICE[kind] ?? "play", meta = {}, expiresAt } = {}) {
     if (!text) return null;
     let audioUrl = null;
     if (voice?.available) {
@@ -127,7 +133,7 @@ export function createBooth({
     packet.why = reasons;
 
     if (!writer?.available) return { queued: false, reason: "no writer" };
-    const text = await writer.line({ packet, timeoutMs: windowMs });
+    const text = await writer.line({ packet, persona: persona("colour"), timeoutMs: windowMs });
     if (!text) return { queued: false, reason: "writer late or empty" };
 
     const verdict = checkLine(text, packet);
@@ -144,11 +150,22 @@ export function createBooth({
   /** The round recap. Never interrupted, so it is worth waiting for. */
   async function recap({ picks, round, isFinal = false, seconds }) {
     stats.recaps++;
-    const ranked = picks
-      .map((card) => ({ card, ...interestOf(card, {}) }))
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, config.opinionsPerRecap ?? (round <= 2 ? 4 : 7));
+    // The standing leans always get a word: config.recapLeans maps a team id to
+    // "love" or "dislike". Then the most interesting of the rest, up to
+    // opinionsPerRecap. Everything else goes unmentioned; the board is on the wall.
+    const leans = config.recapLeans ?? {};
+    const leaned = picks
+      .filter((card) => leans[String(card.teamId)])
+      .map((card) => ({ card, score: 100, reasons: ["lean: " + leans[String(card.teamId)]] }));
+    const ranked = [
+      ...leaned,
+      ...picks
+        .filter((card) => !leans[String(card.teamId)])
+        .map((card) => ({ card, ...interestOf(card, {}) }))
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, config.opinionsPerRecap ?? 4),
+    ];
 
     const fallback = writtenRecap(picks, { round, interesting: ranked });
 
@@ -177,7 +194,7 @@ export function createBooth({
         notes: picks.map((c) => notesFor(c.playerId)).filter(Boolean).join(" "),
         maxChars: 1400,
       };
-      const drafted = await writer.recap({ packet });
+      const drafted = await writer.recap({ packet, persona: persona("host") });
       if (drafted) {
         const verdict = checkLine(drafted, packet);
         if (verdict.ok) text = drafted;
@@ -192,7 +209,30 @@ export function createBooth({
   }
 
   async function open(text) {
-    return say(KIND.OPEN, text || config.openText || "Welcome to the River Ranch draft.", {});
+    // The awakening: something speaks before the host does. Configured in
+    // show.config.json, said in its own voice, then a beat, then the welcome.
+    const wake = config.awakening;
+    const steps = wake?.steps ?? (wake?.text ? [{ voice: "awakening", text: wake.text }] : []);
+    for (const step of steps) {
+      if (step.sound) {
+        // A sound file, no words. It lives in data/audio/cache like a rendered line.
+        const audioUrl = "/audio/" + step.sound;
+        const res = audio.enqueue({ kind: KIND.OPEN, text: "", audioUrl, meta: { sound: step.sound } });
+        if (res.queued) onSay({ kind: KIND.OPEN, text: "", audioUrl, meta: { sound: step.sound } });
+      } else if (step.text) {
+        await say(KIND.OPEN, step.text, { voice: step.voice ?? "awakening" });
+      }
+    }
+    if (steps.length) {
+      const gap = Number(wake.gapSeconds ?? 0) * 1000;
+      if (gap > 0) await new Promise((r) => setTimeout(r, gap));
+    }
+    const welcome = await say(KIND.OPEN, text || config.openText || "Welcome to the River Ranch draft.", {});
+    // Then the booth talks among themselves for a moment. Pre-written, in order.
+    for (const line of config.openBanter?.lines ?? []) {
+      if (line?.text) await say(KIND.OPEN, line.text, { voice: line.voice ?? "host" });
+    }
+    return welcome;
   }
 
   return { callPick, interject, recap, open, say, stats: () => ({ ...stats }) };

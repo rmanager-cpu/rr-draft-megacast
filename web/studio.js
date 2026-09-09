@@ -269,11 +269,19 @@ function playClip(content, card, ceilingMs) {
   }
 }
 
+/** A local clip runs until the reveal ends, and the reveal ends when the next pick lands. */
+function armClipStop() {
+  clearTimeout(clipTimer);
+  const left = Math.max(0, (current?.endsAt ?? 0) - serverNow());
+  clipTimer = setTimeout(stopClip, Math.max(1200, left));
+}
+
 function playFile(content, card, ceilingMs) {
   const v = document.createElement("video");
   v.muted = true;
   v.playsInline = true;
   v.preload = "auto";
+  v.loop = true; // it runs until the next pick lands, however long that takes
   v.src = content.url;
   clipBox.replaceChildren(v);
   clipTag.textContent = card.lastName || card.name;
@@ -282,8 +290,7 @@ function playFile(content, card, ceilingMs) {
     clearTimeout(clipTimer);
     clipBox.classList.add("live");
     clipTag.classList.add("live");
-    const budget = Math.min(ceilingMs ?? 8000, Math.max(0, (current?.endsAt ?? 0) - serverNow()));
-    clipTimer = setTimeout(stopClip, Math.max(1200, budget));
+    armClipStop();
   };
 
   // Only once frames are actually being drawn, same rule as the embed.
@@ -312,7 +319,8 @@ function tick() {
     if (!current) return;
     const total = Math.max(1, current.endsAt - current.startsAt);
     const left = current.endsAt - serverNow();
-    bar.style.width = Math.max(0, Math.min(100, (1 - left / total) * 100)) + "%";
+    // An open-ended reveal has no meaningful progress; the bar shows only once a deadline is real.
+    bar.style.width = total > 120000 ? "0" : Math.max(0, Math.min(100, (1 - left / total) * 100)) + "%";
     if (left > 0) raf = requestAnimationFrame(step);
   };
   raf = requestAnimationFrame(step);
@@ -363,8 +371,9 @@ connect("studio", {
   revealcut: (d) => {
     if (!current || current.card.pick !== d.pick) return;
     current.endsAt = d.endsAt;
-    // Picks are waiting, so the clip goes first. The card is what must survive.
-    stopClip();
+    // The next pick has landed. The clip keeps going to the new deadline, which
+    // the server never sets below the floor, so it always gets its eight seconds.
+    if (clipBox.classList.contains("live")) armClipStop();
     queueEl.textContent = d.queueDepth > 0 ? d.queueDepth + " waiting" : "";
     tick();
   },
@@ -426,6 +435,8 @@ function done(id) {
 
 /** The always-available voice. Real voices layer on top of this, never under it. */
 function speak(text, onEnd) {
+  // Voice markup such as <break time="3s" /> is for ElevenLabs. The system voice would read it aloud.
+  text = String(text ?? "").replace(/<[^>]+>/g, " ");
   if (!text || !window.speechSynthesis) {
     onEnd?.();
     return;

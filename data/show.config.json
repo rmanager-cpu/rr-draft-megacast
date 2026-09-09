@@ -14,18 +14,30 @@
   "recapAfterRounds": [
     1,
     2,
+    3,
     4,
+    5,
     6,
+    7,
     8,
+    9,
     10,
+    11,
     12,
+    13,
     14,
+    15,
     16
   ],
-  "opinionsPerRecap": 4,
+  "opinionsPerRecap": 3,
+  "_recapLeans": "Team id to love or dislike. These picks are always in the recap, on top of opinionsPerRecap others, so 2 leans + 3 = five picks a round. 2 is Trust The Process (Turbo), 3 is Doff (Dave).",
+  "recapLeans": {
+    "2": "love",
+    "3": "dislike"
+  },
   "recapSeconds": {
-    "early": 70,
-    "later": 100
+    "early": 45,
+    "later": 35
   },
   "interjections": {
     "maxPerRound": 2,
@@ -40,16 +52,17 @@
     ]
   },
   "reveal": {
+    "_": "A reveal with nothing waiting holds until the next pick lands; full.dwellMs is only a ceiling. minOnScreenMs is the floor: once the card is up nothing shortens it below this, so a clip always gets its eight seconds and the queue is allowed to fall a little behind. Cards only, no clip, from cardThreshold waiting.",
     "full": {
       "stingMs": 1200,
       "cardInMs": 700,
-      "dwellMs": 15400,
+      "dwellMs": 600000,
       "outMs": 700
     },
     "short": {
       "stingMs": 600,
       "cardInMs": 500,
-      "dwellMs": 6400,
+      "dwellMs": 8000,
       "outMs": 500
     },
     "card": {
@@ -58,16 +71,18 @@
       "dwellMs": 3200,
       "outMs": 400
     },
-    "minOnScreenMs": 2500,
+    "minOnScreenMs": 8500,
     "shortThreshold": 1,
-    "cardThreshold": 3,
+    "cardThreshold": 6,
     "catchupMode": "newest",
     "catchupStripMs": 2500
   },
   "voices": {
-    "_": "ElevenLabs voice ids. Leave blank and the laptop's own voice is used.",
-    "play": "",
-    "colour": ""
+    "_": "ElevenLabs voice ids. Leave blank and the laptop's own voice is used. play calls the picks, colour reacts, host opens and reads the recaps, awakening is the thing that speaks before the show.",
+    "play": "xctasy8XvGp2cVO9HL9k",
+    "colour": "LvmvHEBEmMJBJw9UuhwO",
+    "host": "7QN34D2r3hCNwbOYIeK0",
+    "awakening": "cZHoPmN6ipT48jTmZqpC"
   },
   "openText": "Welcome to the River Ranch draft.",
   "bits": [
@@ -78,5 +93,76 @@
       "text": "",
       "audio": ""
     }
-  ]
+  ],
+  "personas": {
+    "_": "Handed to the writer so it knows who is speaking. Names must also appear in data/lore.md or the guard will refuse them.",
+    "colour": "You are Eldrin, the colour man. British. You react to the football decision in one dry sentence. You are never impressed by a Dave pick and you say so every time he picks, and you tend to like a Turbo pick when the board supports it. You believe the substation is what has been injuring the 49ers, and nobody else in the booth does.",
+    "host": "You are Warren, the host. You are even-handed about everyone except Dave, whose picks you doubt every single time without needing a reason, and you are warm toward Turbo when the draft backs it up. A recap from you is commentary on the picks worth a word, never a list of the round."
+  },
+  "awakening": {
+    "_": "Played at Launch, in order, before the host welcomes the room. A step with text is spoken in that voice; a step with sound plays that file from data/audio/cache. Then gapSeconds of silence, then the welcome.",
+    "steps": [
+      {
+        "voice": "awakening",
+        "text": "Awakening Model 7. <break time=\"3.0s\" /> Awakening Model 7! <break time=\"3.0s\" /> AWAKENING MODEL 7!!!"
+      },
+      {
+        "sound": "scream.mp3"
+      },
+      {
+        "voice": "awakening",
+        "text": "Initializing Fury. <break time=\"2.5s\" /> Commence Megacast."
+      }
+    ],
+    "gapSeconds": 4
+  },
+  "openBanter": {
+    "_": "Said after the welcome, in order, in these voices. Pre-written, so it is rendered and cached before the night. Edit freely. The league name is spelled Liv so the voice says live-as-in-living, not live-as-in-music.",
+    "lines": [
+      {
+        "voice": "host",
+        "text": "Liv free or die hard, R R 4 L. Twelve teams, sixteen rounds, snake draft, ninety seconds a pick. Allison, Eldrin, good to have you both."
+      },
+      {
+        "voice": "play",
+        "text": "Good to be here, Warren. And a word for Turbo at nine, who built this entire broadcast this afternoon, hungover, with three hours to spare. If anything on screen breaks tonight, that is the man to see."
+      },
+      {
+        "voice": "colour",
+        "text": "Dave picks second. First year in the league. I have not seen a pick yet and I already do not like it."
+      },
+      {
+        "voice": "host",
+        "text": "Give the man a chance, Eldrin."
+      },
+      {
+        "voice": "colour",
+        "text": "I am giving him ninety seconds. That is the rule. And Alvarez at six is picking up the bill tonight, which is the best legal work he will do all year."
+      },
+      {
+        "voice": "host",
+        "text": "And Connor at twelve, the defending champion, and kind of a douche. Let us get to it."
+      }
+    ]
+  },
+  "demon": {
+    "_": "The awakening voice, during the draft. onPlayer fires the moment that player is drafted. popIns fire very rarely: each pick has this chance, and never within minPicksBetween picks of the last one. Pre-written, rendered and cached before the night.",
+    "onPlayer": [
+      {
+        "player": "Dak Prescott",
+        "text": "Horrible pick."
+      }
+    ],
+    "popIns": {
+      "chance": 0.02,
+      "minPicksBetween": 30,
+      "lines": [
+        "I am still here.",
+        "Model 7 is watching.",
+        "Fury grows.",
+        "The substation hums.",
+        "Do not disappoint me, Turbo."
+      ]
+    }
+  }
 }

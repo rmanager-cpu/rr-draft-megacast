@@ -14,7 +14,9 @@ import { createBus } from "./bus.mjs";
 import { createHttp } from "./http.mjs";
 import { createSse } from "./sse.mjs";
 import { createState } from "./state.mjs";
-import { createReconciler } from "./reconcile.mjs";
+import { createReconciler, snakeOrder } from "./reconcile.mjs";
+import * as nodeFs from "node:fs";
+import * as nodePath from "node:path";
 import { createFrameHandler } from "./pipeline.mjs";
 import { createReplaySource } from "./src-replay.mjs";
 import { createLiveSource } from "./src-live.mjs";
@@ -86,7 +88,8 @@ const state = createState({
 });
 state.apply((s) => {
   s.source = SOURCE;
-  s.simulated = SOURCE !== "live";
+  // The room source reads the real draft too; only replay and synth are pretend.
+  s.simulated = SOURCE !== "live" && SOURCE !== "room";
 });
 
 if (!has("fresh")) {
@@ -132,6 +135,8 @@ const audio = createAudio({
 
 const writer = createWriter({
   apiKey: env.ANTHROPIC_API_KEY,
+  openaiKey: env.OPENAI_API_KEY,
+  openaiModel: env.OPENAI_MODEL || "gpt-5",
   // The booth knows two things: how it behaves, and who these people are.
   bible: [readTextOr("data/bible.md", ""), readTextOr("data/lore.md", "")].filter(Boolean).join(SEP),
   onWarn: (w) => { log("warn:", w); state.warn(w); },
@@ -139,6 +144,8 @@ const writer = createWriter({
 });
 const voice = createVoice({
   apiKey: env.ELEVENLABS_API_KEY,
+  openaiKey: env.OPENAI_API_KEY,
+  openaiVoices: { play: env.OPENAI_VOICE_PLAY || "onyx", colour: env.OPENAI_VOICE_COLOUR || "ash" },
   voices: Object.fromEntries(Object.entries(showConfig.voices ?? {}).filter(([k, v]) => k !== "_" && v)),
   onWarn: (w) => log("warn:", w),
 });
@@ -240,6 +247,7 @@ function startReconciler(room) {
     leagueId: room.leagueId,
     teamCount: room.teams,
     rounds: room.rounds,
+    order: room.order,
     onWarn: (w) => {
       log("reconcile:", w);
       state.warn(w);
@@ -267,6 +275,14 @@ function startReconciler(room) {
       }
       // A batch learned at once is a reconnect filling in what we missed. Showing
       // them one by one would put the studio minutes behind the room.
+      if (catchup) {
+        // Rounds that were already complete when we joined or rejoined had their
+        // recap from whoever was running then. A restart says nothing on its own.
+        const snap = reconciler.snapshot();
+        const doneRounds = snap.teamCount ? Math.floor(snap.picks.length / snap.teamCount) : 0;
+        for (let r = 1; r <= doneRounds; r++) recapped.add(r);
+        if (doneRounds) log("booth: rounds 1-" + doneRounds + " were complete before we joined, no recap for them");
+      }
       if (catchup && list.length > 1) reveal.enqueueCatchup(list.map(cardFor));
       else for (const p of list) reveal.enqueue(cardFor(p));
 
@@ -276,6 +292,7 @@ function startReconciler(room) {
           const card = cardFor(p);
           booth.callPick(card).catch((e) => log("booth call:", e.message));
           maybeInterject(card);
+          maybeDemon(card);
         }
       }
       checkRoundBoundary();
@@ -293,6 +310,11 @@ function startReconciler(room) {
 
 const recapRounds = new Set(showConfig.recapAfterRounds ?? [1, 2, 4, 6, 8, 10, 12, 14, 16]);
 const recapped = new Set();
+// A restart mid-draft must not recap history. Every round already complete on
+// disk when we came up has had its recap, or its moment has passed either way.
+if (restored?.picks?.length && restored.teamCount) {
+  for (let r = 1; r <= Math.floor(restored.picks.length / restored.teamCount); r++) recapped.add(r);
+}
 
 function checkRoundBoundary() {
   if (!reconciler) return;
@@ -340,6 +362,30 @@ function bitFor(teamId) {
   if (!bit) return null;
   bitsPlayed.add(key);
   return bit;
+}
+
+// The demon, during the draft. Two triggers, both pre-written in the show
+// config: a named player being drafted, and a very rare pop-in. The name
+// match is on the player's full name, case-insensitive.
+let lastDemonPick = -Infinity;
+function maybeDemon(card) {
+  const d = showConfig.demon;
+  if (!d) return;
+  const hit = (d.onPlayer ?? []).find((x) => x?.text && String(x.player ?? "").toLowerCase() === String(card.name ?? "").toLowerCase());
+  if (hit) {
+    log("demon: " + card.name + " drafted");
+    booth.say(KIND.BIT, hit.text, { voice: "awakening", meta: { pick: card.pick, demon: true } }).catch((e) => log("demon:", e.message));
+    return;
+  }
+  const pop = d.popIns;
+  const lines = pop?.lines ?? [];
+  if (!lines.length) return;
+  if (card.pick - lastDemonPick < Number(pop.minPicksBetween ?? 30)) return;
+  if (Math.random() >= Number(pop.chance ?? 0)) return;
+  lastDemonPick = card.pick;
+  const text = lines[Math.floor(Math.random() * lines.length)];
+  log("demon pops in at pick " + card.pick);
+  booth.say(KIND.BIT, text, { voice: "awakening", meta: { pick: card.pick, demon: true } }).catch((e) => log("demon:", e.message));
 }
 
 /** A live reaction. Perishable, capped, and dropped rather than said late. */
@@ -416,6 +462,13 @@ const handleFrame = createFrameHandler({
     if (restored && restored.leagueId === room.leagueId && restored.picks.length) {
       reconciler.restore(restored);
       log("carried " + restored.picks.length + " picks across the restart");
+      // Rounds that were already complete before the restart have had their
+      // recap. A restart must not say them again into a room that heard them.
+      if (restored.teamCount) {
+        const doneRounds = Math.floor(restored.picks.length / restored.teamCount);
+        for (let r = 1; r <= doneRounds; r++) recapped.add(r);
+        if (doneRounds) log("booth: skipping recaps through round " + doneRounds + ", already said before the restart");
+      }
       restored = null;
     }
   },
@@ -501,12 +554,33 @@ function wireEvent(kind, detail) {
   sse.send("status", { connection: state.state.connection, version: state.version });
 }
 
+// Every frame the room sends proves the wire is alive. The launch gate reads
+// lastFrameAt, and before this only connection events set it, so a room that
+// was quietly delivering picks for a minute looked dead to the gate.
+const onWireFrame = (frame) => {
+  state.touch((s) => {
+    s.connection.lastFrameAt = Date.now();
+  });
+  handleFrame(frame);
+};
+
 const routes = {
   "GET /events": ({ req, res, url }) => {
     sse.attach(req, res, { display: url.searchParams.get("display") ?? "ops", hello });
   },
   "GET /img/headshot/:id": (ctx) => headshots.serve(ctx),
-  "GET /audio/:name": ({ res, params }) => serveStatic(res, "../data/audio/cache/" + params.name),
+  "GET /audio/:name": ({ res, params }) => {
+    // Rendered lines live outside web/, and serveStatic rightly refuses anything
+    // outside web/. Serve the cache directly, by bare filename only.
+    const name = String(params.name ?? "");
+    const file = nodePath.join("data/audio/cache", name);
+    if (!/^[A-Za-z0-9._-]+$/.test(name) || name.includes("..") || !nodeFs.existsSync(file)) {
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      return res.end("no such audio");
+    }
+    res.writeHead(200, { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" });
+    nodeFs.createReadStream(file).pipe(res);
+  },
   "POST /api/audio-done": ({ body, json }) => {
     audio.done(String(body.id ?? ""));
     return json(200, { ok: true });
@@ -737,7 +811,7 @@ server.listen(PORT, HOST, async () => {
       swid: env.ESPN_SWID,
       cookie: "SWID=" + env.ESPN_SWID + "; espn_s2=" + env.ESPN_S2,
       season: SEASON,
-      onFrame: handleFrame,
+      onFrame: onWireFrame,
       onEvent: wireEvent,
       onRtt: (ms) => state.touch((s) => (s.connection.rttMs = ms)),
       onContested: (why) => {
@@ -777,12 +851,28 @@ server.listen(PORT, HOST, async () => {
       s.draft.keeperCount = league.keeperCount;
       s.draft.teams = league.teams;
     });
+    // The room's INIT snapshot does not arrive until the draft is under way, and
+    // the launch gate needs a draft order before that. Start from the league's
+    // own pickOrder. When INIT lands, adoptInit takes the room's order as the
+    // truth and says so out loud if the two disagree.
+    if (!reconciler && !league.placeholder && league.rounds && league.pickOrder.length === league.teams.length) {
+      state.apply((s) => {
+        s.draft.teamCount = league.teams.length;
+        s.draft.rounds = league.rounds;
+        // The room snapshot normally moves boot to pre. It will find a reconciler
+        // already here and stand down, so that step is taken now.
+        if (s.phase === "boot") s.phase = "pre";
+      });
+      startReconciler({ leagueId: LEAGUE_ID, teams: league.teams.length, rounds: league.rounds, order: snakeOrder(league.pickOrder, league.rounds) });
+      state.adoptReconciler(reconciler);
+      log("draft order from league settings until the room snapshot arrives");
+    }
     source = createRoomSource({
       leagueId: LEAGUE_ID,
       teamId,
       swid: env.ESPN_SWID,
       season: SEASON,
-      onFrame: handleFrame,
+      onFrame: onWireFrame,
       onEvent: wireEvent,
     });
     state.apply((s) => (s.source = source.name));
@@ -798,7 +888,7 @@ server.listen(PORT, HOST, async () => {
       keepers: Number(flag("keepers", 0)),
       speed: SPEED,
       pool: (players?.byAdp ?? []).map((p) => p.id),
-      onFrame: handleFrame,
+      onFrame: onWireFrame,
       onEvent: wireEvent,
     });
     if (has("drop-at")) {
@@ -814,7 +904,7 @@ server.listen(PORT, HOST, async () => {
     speed: SPEED,
     step: has("step"),
     from: Number(flag("from", 0)),
-    onFrame: handleFrame,
+    onFrame: onWireFrame,
     onEvent: wireEvent,
   });
   if (has("drop-at")) {

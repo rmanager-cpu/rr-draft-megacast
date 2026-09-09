@@ -10,12 +10,16 @@
 //      person sitting in the room.
 
 import Anthropic from "@anthropic-ai/sdk";
+import { openaiText } from "./openai.mjs";
 
 const MODEL = "claude-opus-5";
 
 export function createWriter({
   apiKey = process.env.ANTHROPIC_API_KEY,
   model = MODEL,
+  // With no Anthropic key, an OpenAI key does the same job. Anthropic wins if both are set.
+  openaiKey = process.env.OPENAI_API_KEY,
+  openaiModel = process.env.OPENAI_MODEL || "gpt-5",
   bible = "",
   onWarn = () => {},
   onInfo = () => {},
@@ -24,7 +28,10 @@ export function createWriter({
   let fallbacksSupported = true;
 
   async function ask({ system, user, maxTokens, effort, timeoutMs }) {
-    if (!client) return null;
+    if (!client) {
+      if (!openaiKey) return null;
+      return openaiText({ apiKey: openaiKey, model: openaiModel, system, user, maxTokens, timeoutMs, onWarn });
+    }
     const body = {
       model,
       max_tokens: maxTokens,
@@ -97,7 +104,7 @@ Absolute rules:
 
   return {
     get available() {
-      return !!client;
+      return !!client || !!openaiKey;
     },
     /** A short reaction. Perishable, so it asks for speed over depth. */
     async line({ packet, persona = "", maxChars = 240, timeoutMs = 8000 }) {
@@ -108,15 +115,18 @@ Absolute rules:
         `the moment this pick lands. Return only the sentence.`;
       return ask({ system, user, maxTokens: 400, effort: "low", timeoutMs });
     },
-    /** The round recap. This is the show, so it gets room to think. */
-    async recap({ packet, timeoutMs = 45000 }) {
-      const system = [rules, bible].filter(Boolean).join("\n\n");
+    /** The round recap: commentary on the picks worth a word, not a list of the round. */
+    async recap({ packet, persona = "", timeoutMs = 45000 }) {
+      const system = [rules, bible, persona].filter(Boolean).join("\n\n");
       const user =
         `Packet:\n${JSON.stringify(packet, null, 2)}\n\n` +
-        `Write a spoken recap of ${packet.seconds ?? 75} seconds, roughly ` +
-        `${Math.round((packet.seconds ?? 75) * 2.4)} words. Give an opinion on the ` +
-        `picks marked interesting, then run quickly through the rest. Note any ` +
-        `position run the packet reports. Return only what is to be said.`;
+        `Write spoken commentary on this round: at most ${packet.seconds ?? 75} seconds, ` +
+        `about ${Math.round((packet.seconds ?? 75) * 2.4)} words, shorter if there is less ` +
+        `to say. Give a real opinion on every pick marked interesting and on nothing else. A why ` +
+        `of "lean: dislike" means be hard on that pick; "lean: love" means admire it. ` +
+        `Do not run through the rest of the round and do ` +
+        `not list every pick; the board is on the wall. Note any position run the packet ` +
+        `reports. Return only what is to be said.`;
       return ask({ system, user, maxTokens: 2000, effort: "medium", timeoutMs });
     },
   };

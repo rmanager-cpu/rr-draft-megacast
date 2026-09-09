@@ -13,6 +13,7 @@ import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ensureDir } from "./persist.mjs";
+import { openaiSpeech } from "./openai.mjs";
 
 const API = "https://api.elevenlabs.io/v1/text-to-speech/";
 
@@ -21,6 +22,10 @@ export function createVoice({
   voices = {},
   dir = "data/audio/cache",
   modelId = "eleven_turbo_v2_5",
+  // The OpenAI voices, used when ElevenLabs is not set up. Names, not ids:
+  // onyx, ash, echo, alloy, fable, nova, sage, shimmer, coral, ballad, verse.
+  openaiKey = process.env.OPENAI_API_KEY,
+  openaiVoices = { play: process.env.OPENAI_VOICE_PLAY || "onyx", colour: process.env.OPENAI_VOICE_COLOUR || "ash" },
   onWarn = () => {},
 } = {}) {
   ensureDir(dir);
@@ -31,7 +36,8 @@ export function createVoice({
    */
   async function render(text, { voice = "play", timeoutMs = 12000 } = {}) {
     const voiceId = voices[voice] ?? voices.play ?? null;
-    if (!apiKey || !voiceId || !text) return null;
+    if (!text) return null;
+    if (!apiKey || !voiceId) return renderOpenai(text, voice, timeoutMs);
 
     const name = key(text, voiceId) + ".mp3";
     const file = join(dir, name);
@@ -65,11 +71,22 @@ export function createVoice({
     }
   }
 
+  async function renderOpenai(text, voice, timeoutMs) {
+    if (!openaiKey) return null;
+    const name = "oa-" + key(text, openaiVoices[voice] ?? openaiVoices.play) + ".mp3";
+    const file = join(dir, name);
+    if (existsSync(file)) return { url: "/audio/" + name, cached: true };
+    const buf = await openaiSpeech({ apiKey: openaiKey, voice: openaiVoices[voice] ?? openaiVoices.play, text, timeoutMs, onWarn });
+    if (!buf) return null;
+    await writeFile(file, buf);
+    return { url: "/audio/" + name, cached: false };
+  }
+
   return {
     render,
     dir,
     get available() {
-      return !!apiKey && Object.keys(voices).length > 0;
+      return (!!apiKey && Object.keys(voices).length > 0) || !!openaiKey;
     },
   };
 }

@@ -56,7 +56,7 @@ test("the written recap needs no model and still says something", () => {
   const text = writtenRecap(picks, { round: 2, interesting: [{ card: picks[1], reasons: ["value"] }] });
   assert.match(text, /round 2/);
   assert.match(text, /Bijan Robinson/);
-  assert.match(text, /Justin Jefferson/);
+  assert.doesNotMatch(text, /Justin Jefferson/, "a pick nobody would remark on is not read back");
 });
 
 test("with no writer at all, a pick is still called", async () => {
