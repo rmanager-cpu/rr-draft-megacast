@@ -23,7 +23,7 @@ import { createLiveSource } from "./src-live.mjs";
 import { createSynthSource } from "./src-synth.mjs";
 import { createRoomSource } from "./src-room.mjs";
 import { loadPlayers, splitName } from "./players.mjs";
-import { loadLeague, placeholderLeague } from "./league.mjs";
+import { loadLeague, placeholderLeague, fetchDraftPicks } from "./league.mjs";
 import { createReveal } from "./reveal.mjs";
 import { createHeadshots } from "./headshots.mjs";
 import { CLIP_DIR, createHighlights, isVideoName, localClip, localClipCount } from "./highlights.mjs";
@@ -673,6 +673,14 @@ const routes = {
     if (res.ok) booth.open().catch((e) => log("booth open:", e.message));
     return json(200, res);
   },
+  "POST /api/finale": async ({ body, json }) => {
+    // The closing segment, on command: npm run finale. Preview returns the
+    // script and plays nothing, so it can be read before it reaches the speaker.
+    const snap = reconciler?.snapshot();
+    if (!snap?.picks?.length) return json(409, { ok: false, reason: "no picks to look back on" });
+    const res = await booth.finale({ picks: snap.picks.map(cardFor), preview: !!body?.preview });
+    return json(200, { ok: true, ...res });
+  },
   "POST /api/audio-test": ({ json }) => {
     sse.send("say", { text: "River Ranch draft booth. Testing, one, two.", test: true });
     return json(200, { ok: true });
@@ -878,6 +886,25 @@ server.listen(PORT, HOST, async () => {
       startReconciler({ leagueId: LEAGUE_ID, teams: league.teams.length, rounds: league.rounds, order: snakeOrder(league.pickOrder, league.rounds) });
       state.adoptReconciler(reconciler);
       log("draft order from league settings until the room snapshot arrives");
+      if (restored && Number(restored.leagueId) === LEAGUE_ID && restored.picks.length) {
+        // The room snapshot would have done this, but it finds a reconciler already
+        // here and stands down, so the saved picks are carried across right now.
+        reconciler.restore(restored);
+        state.adoptReconciler(reconciler);
+        log("carried " + restored.picks.length + " picks across the restart");
+        restored = null;
+      } else if (league.drafted) {
+        // The room closes once the draft is over and sends no snapshot. After
+        // completion the league API is the record, so the board is read from there.
+        const records = await fetchDraftPicks({ season: SEASON, leagueId: LEAGUE_ID, cookie: "SWID=" + env.ESPN_SWID + "; espn_s2=" + env.ESPN_S2 });
+        if (records.length) {
+          reconciler.adoptInit(records, { phase: "live" });
+          state.adoptReconciler(reconciler);
+          log("draft is complete: " + records.length + " picks read back from the league");
+        } else {
+          log("draft is complete but the league would not give its picks back");
+        }
+      }
     }
     source = createRoomSource({
       leagueId: LEAGUE_ID,

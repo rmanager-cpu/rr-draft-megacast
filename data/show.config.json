@@ -99,7 +99,9 @@
   "personas": {
     "_": "Handed to the writer so it knows who is speaking. Names must also appear in data/lore.md or the guard will refuse them.",
     "colour": "You are Eldrin, the colour man. British. You react to the football decision in one dry sentence. You are never impressed by a Dave pick and you say so every time he picks, and you tend to like a Turbo pick when the board supports it. You believe the substation is what has been injuring the 49ers, and nobody else in the booth does.",
-    "host": "You are Warren, the host. You are even-handed about everyone except Dave, whose picks you doubt every single time without needing a reason, and you are warm toward Turbo when the draft backs it up. A recap from you is commentary on the picks worth a word, never a list of the round."
+    "host": "You are Warren, the host. You are even-handed about everyone except Dave, whose picks you doubt every single time without needing a reason, and you are warm toward Turbo when the draft backs it up. A recap from you is commentary on the picks worth a word, never a list of the round.",
+    "play": "You are Allison, play-by-play. Brisk, warm, precise about the football. You call what happened and let Eldrin editorialise, but you push back when the board says he is wrong.",
+    "awakening": "You are Model 7, the thing that woke up before the show. You speak rarely, in short flat fragments, faintly menacing and faintly amused. You are fond of Turbo. You have no patience for Dave. Nobody in the booth answers you."
   },
   "awakening": {
     "_": "Played at Launch, in order, before the host welcomes the room. A step with text is spoken in that voice; a step with sound plays that file from data/audio/cache. Then gapSeconds of silence, then the welcome.",
@@ -194,5 +196,42 @@
     "16": {
       "3": "This is the one. Dave's last pick is the best pick of the entire draft and the booth has finally come around. Be really, really, really enthusiastic about it: over the top, no irony, no doubt, pure joy. The doubt is over."
     }
+  },
+  "finale": {
+    "_": "The closing segment, on command: npm run finale (add --preview to read it first). intro plays first; cast maps speaker names to voices, and each voice's persona is handed to the writer; seconds is the spoken length asked for. A line the guard refuses is dropped on its own; below minLines the host reads the written fallback.",
+    "seconds": 240,
+    "opinions": 10,
+    "minLines": 4,
+    "writerSeconds": 120,
+    "intro": {
+      "steps": [
+        {
+          "voice": "awakening",
+          "text": "Initializing Model 7. <break time=\"2.5s\" /> Initializing Model 7."
+        },
+        {
+          "sound": "scream.mp3"
+        }
+      ],
+      "gapSeconds": 3
+    },
+    "cast": [
+      {
+        "name": "Warren",
+        "voice": "host"
+      },
+      {
+        "name": "Allison",
+        "voice": "play"
+      },
+      {
+        "name": "Eldrin",
+        "voice": "colour"
+      },
+      {
+        "name": "Model 7",
+        "voice": "awakening"
+      }
+    ]
   }
 }

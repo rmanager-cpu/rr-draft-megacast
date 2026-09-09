@@ -9,6 +9,28 @@ const BASE = (season, leagueId) =>
 
 const SLOT_LABEL = { 0: "QB", 2: "RB", 4: "WR", 6: "TE", 16: "D/ST", 17: "K", 20: "Bench", 21: "IR", 23: "FLEX" };
 
+/**
+ * After the draft, the league API is the record: every pick with its player, in
+ * the same shape as the room's INIT records. Empty on any failure. Only exactly
+ * -1 (and 0) mean an unfilled slot; a defense's id is negative and real.
+ */
+export async function fetchDraftPicks({ season, leagueId, cookie, timeoutMs = 10000 }) {
+  try {
+    const r = await fetch(BASE(season, leagueId) + "?view=mDraftDetail", {
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { accept: "application/json", ...(cookie ? { cookie } : {}) },
+    });
+    if (!r.ok) return [];
+    const j = await r.json();
+    return (j.draftDetail?.picks ?? [])
+      .filter((p) => p.playerId != null && p.playerId !== -1 && p.playerId !== 0 && p.overallPickNumber > 0)
+      .map((p) => ({ pick: p.overallPickNumber, teamId: p.teamId, playerId: p.playerId, slot: p.lineupSlotId ?? 0 }))
+      .sort((a, b) => a.pick - b.pick);
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchLeague({ season, leagueId, cookie, excludeOwner, timeoutMs = 10000 }) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), timeoutMs);

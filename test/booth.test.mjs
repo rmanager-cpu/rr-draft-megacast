@@ -154,3 +154,35 @@ test("what the lore file does not say is still refused", async () => {
   assert.equal(r.queued, false);
   assert.equal(said.length, 0);
 });
+
+test("a scripted finale is split by speaker, loosely, and continuation lines stay put", async () => {
+  const { parseScript } = await import("../server/booth.mjs");
+  const text = [
+    "**WARREN:** That is the draft.",
+    "ALLISON: Sixteen rounds",
+    "and nobody died.",
+    "Model7: I am still here.",
+    "ELDRIN - no colon, so this continues Model 7",
+    "PRODUCER: never a speaker",
+  ].join("\n");
+  const lines = parseScript(text, ["Warren", "Allison", "Eldrin", "Model 7"]);
+  assert.deepEqual(
+    lines.map((l) => [l.speaker, l.text]),
+    [
+      ["Warren", "That is the draft."],
+      ["Allison", "Sixteen rounds and nobody died."],
+      ["Model 7", "I am still here. ELDRIN - no colon, so this continues Model 7 PRODUCER: never a speaker"],
+    ],
+  );
+});
+
+test("the written finale needs no writer and tells the draft's stories", async () => {
+  const { writtenFinale } = await import("../server/booth.mjs");
+  const card = (pick, name, teamName, adp) => ({ pick, name, teamName, adp, pos: "RB", round: 1 });
+  const picks = [card(3, "A. Value", "Team 1", 20), card(4, "B. Reach", "Team 2", 30)];
+  const text = writtenFinale(picks, { interesting: [{ card: picks[0], reasons: ["value"] }, { card: picks[1], reasons: ["reach"] }] });
+  assert.match(text, /That is the draft/);
+  assert.match(text, /A\. Value was still there at 3/);
+  assert.match(text, /Team 2 went early on B\. Reach/);
+  assert.match(text, /Good night/);
+});

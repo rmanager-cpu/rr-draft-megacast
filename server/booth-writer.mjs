@@ -131,5 +131,27 @@ Absolute rules:
         `reports. Return only what is to be said.`;
       return ask({ system, user, maxTokens: 2000, effort: "medium", timeoutMs });
     },
+    /** The finale: the whole booth on the whole draft, one line per speech, labelled by speaker. */
+    async script({ packet, cast = "", timeoutMs = 120000 }) {
+      const system = [rules, bible, cast].filter(Boolean).join("\n\n");
+      const seconds = packet.seconds ?? 240;
+      const user =
+        `Packet:\n${JSON.stringify(packet)}\n\n` +
+        `Write the closing segment of the broadcast: the whole draft, looked back on by the booth ` +
+        `together, about ${seconds} seconds spoken, roughly ${Math.round(seconds * 2.3)} words. ` +
+        `Format, and this is the one exception to the no-lists rule: one line per speech, each ` +
+        `starting with the speaker's name in capitals and a colon, using exactly these speakers: ` +
+        `${packet.speakers.join(", ")}. No other text, no stage directions, no headings. ` +
+        `The first speaker hosts and steers; the next two argue the football. ` +
+        (packet.speakers.length > 3
+          ? `${packet.speakers[3]} speaks three or four times at most, short and ominous, and the booth never quite acknowledges it. `
+          : "") +
+        `Talk about the picks marked interesting and the shape of a team where it is worth a word. ` +
+        `A why of "lean: dislike" means be hard on that pick; "lean: love" means admire it; any other ` +
+        `lean text is an instruction to follow for that pick and it overrides the bible's standing lean. ` +
+        `Do not read the board back; it is on the wall. Work in the league's lore where it fits ` +
+        `naturally. Every name and number must come from the packet. End with the host signing off.`;
+      return ask({ system, user, maxTokens: 4000, effort: "medium", timeoutMs });
+    },
   };
 }
