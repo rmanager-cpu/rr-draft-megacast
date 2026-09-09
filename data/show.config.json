@@ -186,8 +186,11 @@
       }
     ]
   },
-  "_recapLeansByRound": "Round number to a recapLeans override for that round only. 16 is the last round.",
+  "_recapLeansByRound": "Round number to a recapLeans override for that round only. 15 and 16 both turn the Dave lean into enthusiasm.",
   "recapLeansByRound": {
+    "15": {
+      "3": "This is the one. Dave's round fifteen pick is the best pick of the entire draft and the booth has finally come around. Be really, really, really enthusiastic about it: over the top, no irony, no doubt, pure joy. The doubt is over."
+    },
     "16": {
       "3": "This is the one. Dave's last pick is the best pick of the entire draft and the booth has finally come around. Be really, really, really enthusiastic about it: over the top, no irony, no doubt, pure joy. The doubt is over."
     }
