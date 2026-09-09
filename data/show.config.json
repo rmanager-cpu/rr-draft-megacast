@@ -40,7 +40,7 @@
     "later": 35
   },
   "interjections": {
-    "maxPerRound": 2,
+    "maxPerRound": 0,
     "cooldownSeconds": 90,
     "dropIfLaterThanSeconds": 10,
     "triggers": [
@@ -49,7 +49,8 @@
       "run",
       "early K",
       "early D/ST"
-    ]
+    ],
+    "_": "Live one-line reactions from the colour man between picks. Owner, Sep 8 draft night: off. Only the demon may interject; the booth speaks in the recaps. Set maxPerRound above 0 to bring them back."
   },
   "reveal": {
     "_": "A reveal with nothing waiting holds until the next pick lands; full.dwellMs is only a ceiling. minOnScreenMs is the floor: once the card is up nothing shortens it below this, so a clip always gets its eight seconds and the queue is allowed to fall a little behind. Cards only, no clip, from cardThreshold waiting.",
