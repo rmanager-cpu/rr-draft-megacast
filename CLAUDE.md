@@ -1,15 +1,17 @@
 # River Ranch Fantasy Draft Megacast
 
-**Draft night: Tuesday September 8, 2026.** One HP laptop, three screens, one speaker,
-nobody touching anything after Launch.
+**The draft ran Tuesday September 8, 2026, and the show worked.** Read
+`docs/POSTMORTEM-2026.md` first: what actually shipped, what the room saw, and the eight
+things 2027 is for. Everything below this line was written before the draft and is kept
+because it is still how the machine works.
 
-Read `docs/ENGINE.md` first: it explains how the whole thing works. `README.md` is the
-run sheet. `docs/BUILD-GUIDE.md` is the original spec. `docs/SPIKE-RESULTS.md` is what
-the ESPN wire actually does.
+`docs/ENGINE.md` explains how the whole thing works. `README.md` is the run sheet.
+`docs/BUILD-GUIDE.md` is the original spec. `docs/SPIKE-RESULTS.md` is what the ESPN wire
+actually does.
 
-## State as of Sep 4
+## State as of Sep 4 (written before the draft)
 
-The show is built and runs end to end. Branch: `build/show-server`.
+The show is built and runs end to end. It is all on `master` now.
 
 **Working and verified:**
 
@@ -26,7 +28,7 @@ The show is built and runs end to end. Branch: `build/show-server`.
 - Restart mid-draft, a simulated dropout, and a dead clip are all covered by scripts.
 - 78 tests, none of which need a network.
 
-**Not yet done, and all of it needs the owner:**
+**Open on Sep 4. All of it closed by draft night, some of it barely — see the post-mortem:**
 
 - The live wire has never been run against a real ESPN draft room. This is the one
   unverified link. ESPN allows a practice draft inside the home league; that is the

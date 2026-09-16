@@ -39,7 +39,6 @@ the highlight catalogue.
 ```
 git clone https://github.com/rmanager-cpu/rr-draft-megacast.git
 cd rr-draft-megacast
-git checkout build/show-server
 npm install
 ```
 
